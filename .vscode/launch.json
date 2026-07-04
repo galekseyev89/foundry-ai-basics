@@ -1,0 +1,17 @@
+{
+    "version": "0.0.1",
+    "configurations": [
+        {
+            "name": "Python Debugger: Foundry AI Basics",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "python": ".venv/Scripts/python.exe",
+            "env": {
+                "AZURE_OPENAI_ENDPOINT": "https://foundry-ai-basics.openai.azure.com/openai/v1",
+                "AZURE_OPENAI_DEPLOYMENT_NAME": "gpt-5.4-mini"
+            }
+        }
+    ]
+}
