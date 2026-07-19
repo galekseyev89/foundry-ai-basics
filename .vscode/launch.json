@@ -10,7 +10,10 @@
             "python": ".venv/Scripts/python.exe",
             "env": {
                 "AZURE_OPENAI_ENDPOINT": "https://foundry-ai-basics.openai.azure.com/openai/v1",
-                "AZURE_OPENAI_DEPLOYMENT_NAME": "gpt-5.4-mini"
+                "AZURE_OPENAI_DEPLOYMENT_NAME": "gpt-5.4-mini",
+                "CONTENT_SAFETY_ENDPOINT": "https://foundry-ai-basics-csafety.cognitiveservices.azure.com/",
+                "USER_NAME": "Peter Parker",
+                "USER_ROLE": "Customer"
             }
         }
     ]

@@ -18,3 +18,4 @@ az cognitiveservices account list-deleted --output table
 
 # The following commands permanently delete the soft-deleted accounts.
 az cognitiveservices account purge --location swedencentral --resource-group foundry-ai-basics-rg --name foundry-ai-basics
+az cognitiveservices account purge --location swedencentral --resource-group foundry-ai-basics-rg --name foundry-ai-basics-csafety

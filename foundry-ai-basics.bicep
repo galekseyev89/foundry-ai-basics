@@ -2,11 +2,12 @@
 
 param aiFoundryName string = 'foundry-ai-basics'
 param aiProjectName string = '${aiFoundryName}-proj'
+param contentSafetyName string = '${aiFoundryName}-csafety'
 param location string = resourceGroup().location
 
 /*
   An AI Foundry resources is a variant of a CognitiveServices/account resource type
-*/ 
+*/
 resource aiFoundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   name: aiFoundryName
   location: location
@@ -32,7 +33,7 @@ resource aiFoundry 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   Developer APIs are exposed via a project, which groups in- and outputs that relate to one use case, including files.
   Its advisable to create one project right away, so development teams can directly get started.
   Projects may be granted individual RBAC permissions and identities on top of what account provides.
-*/ 
+*/
 resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = {
   name: aiProjectName
   parent: aiFoundry
@@ -46,15 +47,15 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = 
 /*
   Optionally deploy a model to use in playground, agents and other tools.
 */
-resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01'= {
+resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
   parent: aiFoundry
   name: 'gpt-5.4-mini'
-  sku : {
+  sku: {
     capacity: 1
     name: 'GlobalStandard'
   }
   properties: {
-    model:{
+    model: {
       name: 'gpt-5.4-mini'
       format: 'OpenAI'
       version: '2026-03-17'
@@ -62,5 +63,25 @@ resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-
   }
 }
 
+/*
+  Content Safety service to moderate text, images, and other content
+*/
+resource contentSafety 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
+  name: contentSafetyName
+  location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
+  sku: {
+    name: 'S0'
+  }
+  kind: 'ContentSafety'
+  properties: {
+    customSubDomainName: contentSafetyName
+    disableLocalAuth: false
+  }
+}
+
 output OPENAI_ENDPOINT string = 'https://${aiFoundry.properties.customSubDomainName}.services.ai.azure.com/openai/v1'
 output OPENAI_DEPLOYMENT_NAME string = modelDeployment.name
+output CONTENT_SAFETY_ENDPOINT string = 'https://${contentSafety.properties.customSubDomainName}.cognitiveservices.azure.com/'
