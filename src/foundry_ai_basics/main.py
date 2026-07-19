@@ -1,15 +1,22 @@
 import sys
 
-from clients import create_content_safety_client, create_openai_client
-from config import load_config
-from display import (
+from foundry_ai_basics.ai.prompts import (
+    build_system_instruction,
+    count_tokens,
+    truncate_system_instruction,
+)
+from foundry_ai_basics.ai.routing import route_to_model
+from foundry_ai_basics.ai.safety import is_text_safe
+from foundry_ai_basics.azure_clients.clients import (
+    create_content_safety_client,
+    create_openai_client,
+)
+from foundry_ai_basics.core.config import load_config
+from foundry_ai_basics.presentation.display import (
     format_reply,
     print_performance_metrics,
     print_routing_explanation,
 )
-from prompts import build_system_instruction, count_tokens, truncate_system_instruction
-from routing import route_to_model
-from safety import is_text_safe
 
 
 def main() -> None:
@@ -37,7 +44,7 @@ def main() -> None:
     # user_message_text = (
     #     "My order number is 12345. I want to return my 70 inch TV. Can you help me?"
     # )
-    
+
     user_message_text = (
         "This is a simple request: I need to understand what is happening to my "
         "refund request. Can you analyze the situation and tell me why it is "

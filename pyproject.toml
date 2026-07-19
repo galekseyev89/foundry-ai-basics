@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "foundry-ai-basics"
+version = "0.1.0"
+description = "Azure AI Foundry basics sample project"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+foundry-ai-basics = "foundry_ai_basics.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

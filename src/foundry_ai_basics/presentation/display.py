@@ -1,4 +1,4 @@
-from routing import RoutingResult
+from foundry_ai_basics.ai.routing import RoutingResult
 
 
 def format_reply(reply: str) -> None:
