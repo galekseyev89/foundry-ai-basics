@@ -47,7 +47,7 @@ resource aiProject 'Microsoft.CognitiveServices/accounts/projects@2025-06-01' = 
 /*
   Optionally deploy a model to use in playground, agents and other tools.
 */
-resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+resource llmModelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
   parent: aiFoundry
   name: 'gpt-5.4-mini'
   sku: {
@@ -59,6 +59,22 @@ resource modelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-
       name: 'gpt-5.4-mini'
       format: 'OpenAI'
       version: '2026-03-17'
+    }
+  }
+}
+
+resource slmModelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
+  parent: aiFoundry
+  name: 'gpt-5.4-nano'
+  sku: {
+    capacity: 1
+    name: 'GlobalStandard'
+  }
+  properties: {
+    model: {
+      name: 'gpt-5.4-nano'
+      format: 'OpenAI'
+      version: '2026-08-07'
     }
   }
 }
@@ -83,5 +99,6 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
 }
 
 output OPENAI_ENDPOINT string = 'https://${aiFoundry.properties.customSubDomainName}.services.ai.azure.com/openai/v1'
-output OPENAI_DEPLOYMENT_NAME string = modelDeployment.name
+output LLM_DEPLOYMENT_NAME string = llmModelDeployment.name
+output SLM_DEPLOYMENT_NAME string = slmModelDeployment.name
 output CONTENT_SAFETY_ENDPOINT string = 'https://${contentSafety.properties.customSubDomainName}.cognitiveservices.azure.com/'

@@ -12,6 +12,7 @@ KEY CONCEPTS IN THIS UNIT:
 import os
 import sys
 import tiktoken
+import time
 
 # The OpenAI SDK provides ready-to-use functions for calling Azure's AI models
 from openai import OpenAI
@@ -28,7 +29,8 @@ from azure.ai.contentsafety.models import AnalyzeTextOptions
 # CONFIGURATION
 # =============================================================================
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+LLM_DEPLOYMENT_NAME = os.getenv("LLM_DEPLOYMENT_NAME")
+SLM_DEPLOYMENT_NAME = os.getenv("SLM_DEPLOYMENT_NAME")
 CONTENT_SAFETY_ENDPOINT = os.getenv("CONTENT_SAFETY_ENDPOINT")
 
 USER_NAME = os.getenv("USER_NAME")
@@ -67,6 +69,7 @@ content_safety_client = ContentSafetyClient(
 # FUNCTIONS
 # =============================================================================
 
+
 def format_reply(reply):
     """
     Format the assistant's reply for display.
@@ -76,6 +79,7 @@ def format_reply(reply):
     print(reply)
     print("\n" + "=" * 50)
     return
+
 
 def is_text_safe(text_to_check):
     """
@@ -127,7 +131,8 @@ def is_text_safe(text_to_check):
 
     return True
 
-def count_tokens(text, model=AZURE_OPENAI_DEPLOYMENT_NAME):
+
+def count_tokens(text, model=LLM_DEPLOYMENT_NAME):
     """
     Count tokens using tiktoken. Different models use different tokenizers.
     """
@@ -139,6 +144,7 @@ def count_tokens(text, model=AZURE_OPENAI_DEPLOYMENT_NAME):
         encoding = tiktoken.get_encoding("o200k_base")
 
     return len(encoding.encode(text))
+
 
 def build_system_instruction(user_name, user_role, session_state, grounding_results):
     """
@@ -222,6 +228,7 @@ def build_system_instruction(user_name, user_role, session_state, grounding_resu
 
     return "\n".join(sections)
 
+
 def truncate_system_instruction(instruction, max_tokens=MAX_SYSTEM_TOKENS):
     """
     Truncate instruction when token limit exceeded.
@@ -259,6 +266,138 @@ def truncate_system_instruction(instruction, max_tokens=MAX_SYSTEM_TOKENS):
 
 
 # =============================================================================
+# INTENT CLASSIFIER & MODEL ROUTING (NEW in Unit 4)
+# =============================================================================
+
+
+def classify_intent(user_question):
+    """
+    Determine whether a question is simple or complex.
+    Returns: "simple" or "complex"
+    """
+    question_lower = user_question.lower()
+
+    # Complex patterns (require deeper reasoning)
+    complex_patterns = [
+        "compare",
+        "contrast",
+        "analyze",
+        "evaluate",
+        "why should",
+        "what if",
+        "how would",
+        "plan",
+        "strategy",
+        "recommend",
+        "suggest",
+    ]
+
+    for pattern in complex_patterns:
+        if pattern in question_lower:
+            return "complex"
+
+    # Simple patterns (greetings and basic facts)
+    simple_patterns = [
+        "hello",
+        "hi",
+        "hey",
+        "greetings",
+        "what is",
+        "who is",
+        "when is",
+        "where is",
+        "how are you",
+        "thanks",
+        "thank you",
+    ]
+
+    for pattern in simple_patterns:
+        if pattern in question_lower:
+            return "simple"
+
+    # Long questions (over 20 words) are likely complex
+    if len(user_question.split()) > 20:
+        return "complex"
+
+    return "simple"
+
+
+def classify_intent_via_slm(user_question):
+    """
+    Use the SLM (Phi-4) to classify intent as simple or complex.
+    This is more accurate than keyword matching but adds latency and cost.
+    Returns: "simple" or "complex"
+    """
+    system_instruction = """
+    You classify questions or user prompts as either "simple" or "complex":
+
+    A "simple" question is a straightforward query that can be answered with a fact, definition, or short response. Examples include greetings, basic facts, and simple instructions.
+
+    A "complex" question requires deeper reasoning, analysis, comparison, planning, or multi-step thinking. Examples include "compare product A and B", "what if scenarios", and "recommend a strategy".
+
+    Respond with only one word: "simple" or "complex".
+    """
+
+    system_message = {"role": "system", "content": system_instruction}
+    user_message = {"role": "user", "content": user_question}
+    messages = [system_message, user_message]
+
+    response = client.chat.completions.create(
+        model=SLM_DEPLOYMENT_NAME, messages=messages
+    )
+
+    classification = response.choices[0].message.content.strip().lower()
+    if classification not in ["simple", "complex"]:
+        print(
+            f"Unexpected classification result: '{classification}'. Defaulting to 'complex'."
+        )
+        return "complex"
+
+    return classification
+
+
+def route_to_model(user_question, messages, use_slm_classifier=True):
+    """
+    Route question to appropriate model based on intent classification.
+    Returns: (response_text, model_name, latency_ms, token_usage)
+    """
+    if use_slm_classifier:
+        print("\n[INTENT CLASSIFIER] Using SLM (Phi-4) for classification...")
+        intent = classify_intent_via_slm(user_question)
+    else:
+        print("\n[INTENT CLASSIFIER] Using keyword-based classification...")
+        intent = classify_intent(user_question)
+
+    print(f"\n[INTENT CLASSIFIER] Question classified as: {intent.upper()}")
+
+    if intent == "simple":
+        print("[ROUTING] Sending to (SLM) - faster and cheaper")
+        model_name = "(SLM)"
+        deployment = SLM_DEPLOYMENT_NAME
+    else:
+        print("[ROUTING] Sending to (LLM) - more capable for complex tasks")
+        model_name = "(LLM)"
+        deployment = LLM_DEPLOYMENT_NAME
+
+    start_time = time.time()
+
+    response = client.chat.completions.create(model=deployment, messages=messages)
+
+    latency_ms = (time.time() - start_time) * 1000
+    reply = response.choices[0].message.content
+
+    token_usage = None
+    if hasattr(response, "usage") and response.usage:
+        token_usage = {
+            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.completion_tokens,
+            "total_tokens": response.usage.total_tokens,
+        }
+
+    return reply, model_name, latency_ms, token_usage
+
+
+# =============================================================================
 # MAIN SCRIPT LOGIC
 # =============================================================================
 
@@ -267,11 +406,11 @@ system_instruction = build_system_instruction(
     user_name=USER_NAME,
     user_role=USER_ROLE,
     session_state=SESSION_STATE,
-    grounding_results=GROUNDING_RESULTS
+    grounding_results=GROUNDING_RESULTS,
 )
 
-# Count tokens and truncate if needed
-token_count = count_tokens(system_instruction)
+# Count and warn if token limit exceeded
+token_count = count_tokens(system_instruction, model=LLM_DEPLOYMENT_NAME)
 
 if token_count > MAX_SYSTEM_TOKENS:
     system_instruction, token_count = truncate_system_instruction(system_instruction)
@@ -280,34 +419,62 @@ if token_count > MAX_SYSTEM_TOKENS:
 system_message = {"role": "system", "content": system_instruction}
 
 # Get user input
-user_message_text = "My order number is 12345. I want to return my 70 inch TV. Can you help me?"
+# user_message_text = (
+#     "My order number is 12345. I want to return my 70 inch TV. Can you help me?"
+# )
+user_message_text = "This is a simple request: I need to understand what is happening to my refund request. Can you analyze the situation and tell me why it is taking so long?"
+# user_message_text = "Hello, how are you?"
 
 # Content safety check for user message before sending to the model
 if not is_text_safe(user_message_text):
     format_reply(SAFE_RESPONSE)
-    sys.exit(0)
+
 
 # Build messages array with dynamic system instruction
 user_message = {"role": "user", "content": user_message_text}
 messages = [system_message, user_message]
 
-response = client.chat.completions.create(
-    model=AZURE_OPENAI_DEPLOYMENT_NAME,
-    messages=messages,
+reply, model_name, latency_ms, token_usage = route_to_model(
+    user_message_text, messages, use_slm_classifier=True
 )
 
-assistant_reply = response.choices[0].message.content
+if reply is None:
+    print("ERROR: Failed to get response from model.")
+    sys.exit(1)
 
 # Content safety check for assistant reply before displaying
-if not is_text_safe(assistant_reply):
+if not is_text_safe(reply):
     format_reply(SAFE_RESPONSE)
 else:
-    format_reply(assistant_reply)
+    format_reply(reply)
 
-# Print token usage if available
-if hasattr(response, "usage") and response.usage:
-    print(
-        f"Token usage - Prompt: {response.usage.prompt_tokens}, "
-        f"Completion: {response.usage.completion_tokens}, "
-        f"Total: {response.usage.total_tokens}\n"
-    )
+# Display performance metrics
+print("\n" + "=" * 50)
+print("PERFORMANCE METRICS:")
+print("=" * 50)
+print(f"Model used: {model_name}")
+print(f"Latency: {latency_ms:.2f} ms")
+
+if token_usage:
+    print(f"Prompt tokens: {token_usage['prompt_tokens']}")
+    print(f"Completion tokens: {token_usage['completion_tokens']}")
+    print(f"Total tokens: {token_usage['total_tokens']}")
+
+    # Approximate cost estimates (actual rates vary by region)
+    if model_name == "Phi-4 (SLM)":
+        estimated_cost = token_usage["total_tokens"] * 0.0000002
+        print(f"Estimated cost: ${estimated_cost:.6f} (SLM rates)")
+    else:
+        estimated_cost = token_usage["total_tokens"] * 0.00001
+        print(f"Estimated cost: ${estimated_cost:.6f} (LLM rates)")
+
+print("\n" + "=" * 50)
+print("ROUTING DECISION EXPLANATION:")
+print("=" * 50)
+intent = classify_intent(user_message_text)
+if intent == "simple":
+    print("Question classified as SIMPLE → Routed to Phi-4 (faster, cheaper)")
+    print("Examples: greetings, basic facts, short answers")
+else:
+    print("Question classified as COMPLEX → Routed to GPT-4.1-Mini (more capable)")
+    print("Examples: analysis, comparison, planning, multi-step reasoning")
