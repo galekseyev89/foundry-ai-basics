@@ -66,6 +66,9 @@ resource llmModelDeployment 'Microsoft.CognitiveServices/accounts/deployments@20
 resource slmModelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01' = {
   parent: aiFoundry
   name: 'gpt-5.4-nano'
+  dependsOn: [
+    llmModelDeployment
+  ]
   sku: {
     capacity: 1
     name: 'GlobalStandard'
@@ -74,7 +77,7 @@ resource slmModelDeployment 'Microsoft.CognitiveServices/accounts/deployments@20
     model: {
       name: 'gpt-5.4-nano'
       format: 'OpenAI'
-      version: '2026-08-07'
+      version: '2026-03-17'
     }
   }
 }

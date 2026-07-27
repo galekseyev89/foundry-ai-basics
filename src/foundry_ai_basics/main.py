@@ -66,10 +66,20 @@ def main() -> None:
     result = route_to_model(
         openai_client,
         user_message_text,
-        messages,
-        llm_deployment_name=config.llm_deployment_name,
-        slm_deployment_name=config.slm_deployment_name,
-        use_slm_classifier=True,
+        intent_classifier_max_tokens=config.intent_classifier.max_tokens,
+        intent_classifier_temperature=config.intent_classifier.temperature,
+        intent_classifier_top_p=config.intent_classifier.top_p,
+        llm_model_deployment_name=config.llm_deployment_name,
+        llm_max_past_messages=config.llm.max_past_messages,
+        llm_max_tokens=config.llm.max_tokens,
+        llm_temperature=config.llm.temperature,
+        llm_top_p=config.llm.top_p,
+        slm_model_deployment_name=config.slm_deployment_name,
+        slm_max_past_messages=config.slm.max_past_messages,
+        slm_max_tokens=config.slm.max_tokens,
+        slm_temperature=config.slm.temperature,
+        slm_top_p=config.slm.top_p,
+        messages=messages,
     )
 
     if result.reply is None:

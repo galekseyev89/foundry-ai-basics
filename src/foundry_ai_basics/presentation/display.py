@@ -4,14 +4,13 @@ from foundry_ai_basics.ai.routing import RoutingResult
 def format_reply(reply: str) -> None:
     print("=" * 50)
     print(reply)
-    print("\n" + "=" * 50)
 
 
 def print_performance_metrics(result: RoutingResult) -> None:
     print("\n" + "=" * 50)
     print("PERFORMANCE METRICS:")
     print("=" * 50)
-    print(f"Model used: {result.model_label}")
+    print(f"Model used: {result.model_name}")
     print(f"Latency: {result.latency_ms:.2f} ms")
 
     if not result.token_usage:

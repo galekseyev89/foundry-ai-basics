@@ -27,7 +27,7 @@ def is_text_safe(
     for category, label in checks:
         severity = severities.get(category, 0)
         if severity > severity_threshold:
-            print(f"Blocked: {label} (severity {severity})")
+            print(f"[SAFETY]: Blocked: {label} (severity {severity})")
             return False
 
     return True

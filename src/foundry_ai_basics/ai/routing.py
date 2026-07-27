@@ -8,62 +8,20 @@ from openai import OpenAI
 @dataclass(frozen=True)
 class RoutingResult:
     reply: str | None
-    model_label: str
+    model_name: str
     model_type: str
     intent: str
     latency_ms: float
     token_usage: dict[str, int] | None
 
 
-def classify_intent(user_question: str) -> str:
-    question_lower = user_question.lower()
-
-    complex_patterns = [
-        "compare",
-        "contrast",
-        "analyze",
-        "evaluate",
-        "why should",
-        "what if",
-        "how would",
-        "plan",
-        "strategy",
-        "recommend",
-        "suggest",
-    ]
-
-    for pattern in complex_patterns:
-        if pattern in question_lower:
-            return "complex"
-
-    simple_patterns = [
-        "hello",
-        "hi",
-        "hey",
-        "greetings",
-        "what is",
-        "who is",
-        "when is",
-        "where is",
-        "how are you",
-        "thanks",
-        "thank you",
-    ]
-
-    for pattern in simple_patterns:
-        if pattern in question_lower:
-            return "simple"
-
-    if len(user_question.split()) > 20:
-        return "complex"
-
-    return "simple"
-
-
 def classify_intent_via_slm(
     client: OpenAI,
     user_question: str,
-    slm_deployment_name: str,
+    deployment_name: str,
+    max_tokens: int,
+    temperature: float,
+    top_p: float,
 ) -> str:
     system_instruction = """
     You classify questions or user prompts as either "simple" or "complex":
@@ -81,15 +39,17 @@ def classify_intent_via_slm(
     ]
 
     response = client.chat.completions.create(
-        model=slm_deployment_name,
+        model=deployment_name,
         messages=messages,
+        max_completion_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
     )
 
     classification = response.choices[0].message.content.strip().lower()
     if classification not in ["simple", "complex"]:
         print(
-            f"Unexpected classification result: '{classification}'. "
-            "Defaulting to 'complex'."
+            f"[INTENT CLASSIFIER]: Unexpected classification result: '{classification}'. Defaulting to 'complex'."
         )
         return "complex"
 
@@ -99,44 +59,82 @@ def classify_intent_via_slm(
 def route_to_model(
     client: OpenAI,
     user_question: str,
-    messages: list[dict[str, str]],
-    llm_deployment_name: str,
-    slm_deployment_name: str,
-    use_slm_classifier: bool = True,
-) -> RoutingResult:
-    if use_slm_classifier:
-        print("\n[INTENT CLASSIFIER] Using SLM (Phi-4) for classification...")
-        intent = classify_intent_via_slm(client, user_question, slm_deployment_name)
-    else:
-        print("\n[INTENT CLASSIFIER] Using keyword-based classification...")
-        intent = classify_intent(user_question)
 
-    print(f"\n[INTENT CLASSIFIER] Question classified as: {intent.upper()}")
+    intent_classifier_max_tokens: int,
+    intent_classifier_temperature: float,
+    intent_classifier_top_p: float,
+    
+    llm_model_deployment_name: str,
+    llm_max_past_messages: int,
+    llm_max_tokens: int,
+    llm_temperature: float,
+    llm_top_p: float,
+
+    slm_model_deployment_name: str,
+    slm_max_past_messages: int,
+    slm_max_tokens: int,
+    slm_temperature: float,
+    slm_top_p: float,
+    
+    messages: list[dict[str, str]]
+) -> RoutingResult:
+    """
+    Route question to appropriate model based on intent classification.
+    Returns: (response_text, model_name, latency_ms, token_usage)
+    """
+  
+    print(f"\n[INTENT CLASSIFIER]: Using SLM ({slm_model_deployment_name}) for classification...")
+    intent = classify_intent_via_slm(
+        client,
+        user_question,
+        slm_model_deployment_name,
+        intent_classifier_max_tokens,
+        intent_classifier_temperature,
+        intent_classifier_top_p,
+    )
+
+    print(f"\n[INTENT CLASSIFIER]: Question classified as: {intent.upper()}")
 
     if intent == "simple":
-        print("[ROUTING] Sending to Phi-4 (SLM) - faster and cheaper")
-        model_label = "Phi-4 (SLM)"
+        print(f"[ROUTING]: Sending to ({slm_model_deployment_name}) - faster and cheaper")
+
         model_type = "SLM"
-        deployment = slm_deployment_name
+        model_name = slm_model_deployment_name
+        max_past_messages = slm_max_past_messages
+        max_tokens = slm_max_tokens
+        temperature = slm_temperature
+        top_p = slm_top_p
     else:
         print(
-            "[ROUTING] Sending to GPT-4.1-Mini (LLM) - "
-            "more capable for complex tasks"
+            f"[ROUTING]: Sending to ({llm_model_deployment_name}) - more capable for complex tasks"
         )
-        model_label = "GPT-4.1-Mini (LLM)"
         model_type = "LLM"
-        deployment = llm_deployment_name
+        model_name = llm_model_deployment_name
+        max_past_messages = llm_max_past_messages
+        max_tokens = llm_max_tokens
+        temperature = llm_temperature
+        top_p = llm_top_p
+
+    messages = messages[
+        -max_past_messages:
+    ]  # Keep only the most recent messages within the limit
 
     start_time = time.time()
 
-    response = client.chat.completions.create(model=deployment, messages=messages)
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=messages,
+        max_completion_tokens=max_tokens,  # Set the maximum length of the response
+        temperature=temperature,  # Control the creativity of the response
+        top_p=top_p,  # Control the diversity of the token selection
+    )
 
     latency_ms = (time.time() - start_time) * 1000
     reply = response.choices[0].message.content
 
     return RoutingResult(
         reply=reply,
-        model_label=model_label,
+        model_name=model_name,
         model_type=model_type,
         intent=intent,
         latency_ms=latency_ms,
