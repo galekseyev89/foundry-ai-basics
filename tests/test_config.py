@@ -11,59 +11,23 @@ class ConfigTests(unittest.TestCase):
     def test_load_config_reads_settings_file(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             config_path = Path(temp_dir) / "settings.toml"
-            config_path.write_text(
-                """
-                [azure]
-                openai_endpoint = "https://file.openai.azure.com"
-                llm_deployment_name = "file-llm"
-                slm_deployment_name = "file-slm"
-                content_safety_endpoint = "https://file.cognitiveservices.azure.com"
+            config_path.write_text(_minimal_settings(), encoding="utf-8")
+            env = _azure_env()
 
-                [user]
-                name = "Avery"
-                role = "learner"
-
-                [safety]
-                severity_threshold = 2
-                safe_response = "Blocked by test safety policy."
-
-                [prompt]
-                max_system_tokens = 3000
-
-                [routing.llm]
-                max_past_messages = 10
-                max_tokens = 200
-                temperature = 0.5
-                top_p = 0.5
-
-                [routing.slm]
-                max_past_messages = 5
-                max_tokens = 100
-                temperature = 0.1
-                top_p = 0.25
-
-                [routing.intent_classifier]
-                max_tokens = 5
-                temperature = 0
-                top_p = 1.0
-                """,
-                encoding="utf-8",
-            )
-
-            with patch.dict(os.environ, {}, clear=True):
+            with patch.dict(os.environ, env, clear=True):
                 config = load_config(config_path)
 
-        self.assertEqual(config.azure_openai_endpoint, "https://file.openai.azure.com")
-        self.assertEqual(config.llm_deployment_name, "file-llm")
-        self.assertEqual(config.slm_deployment_name, "file-slm")
+        self.assertEqual(config.azure_openai_endpoint, "https://env.openai.azure.com")
+        self.assertEqual(config.llm_deployment_name, "env-llm")
+        self.assertEqual(config.slm_deployment_name, "env-slm")
         self.assertEqual(
             config.content_safety_endpoint,
-            "https://file.cognitiveservices.azure.com",
+            "https://env.cognitiveservices.azure.com",
         )
         self.assertEqual(config.user_name, "Avery")
         self.assertEqual(config.user_role, "learner")
         self.assertEqual(config.severity_threshold, 2)
-        self.assertEqual(config.safe_response, "Blocked by test safety policy.")
+        self.assertEqual(config.safe_response, "Blocked by settings file safety policy.")
         self.assertEqual(config.max_system_tokens, 3000)
         self.assertEqual(config.llm.max_tokens, 200)
         self.assertEqual(config.llm.temperature, 0.5)
@@ -72,49 +36,8 @@ class ConfigTests(unittest.TestCase):
     def test_load_config_uses_env_vars_as_overrides(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             config_path = Path(temp_dir) / "settings.toml"
-            config_path.write_text(
-                """
-                [azure]
-                openai_endpoint = "https://file.openai.azure.com"
-                llm_deployment_name = "file-llm"
-                slm_deployment_name = "file-slm"
-                content_safety_endpoint = "https://file.cognitiveservices.azure.com"
-
-                [user]
-                name = "Avery"
-                role = "learner"
-
-                [safety]
-                severity_threshold = 2
-                safe_response = "Blocked by settings file safety policy."
-
-                [prompt]
-                max_system_tokens = 3000
-
-                [routing.llm]
-                max_past_messages = 10
-                max_tokens = 200
-                temperature = 0.5
-                top_p = 0.5
-
-                [routing.slm]
-                max_past_messages = 5
-                max_tokens = 100
-                temperature = 0.1
-                top_p = 0.25
-
-                [routing.intent_classifier]
-                max_tokens = 5
-                temperature = 0
-                top_p = 1.0
-                """,
-                encoding="utf-8",
-            )
-            env = {
-                "AZURE_OPENAI_ENDPOINT": "https://env.openai.azure.com",
-                "LLM_DEPLOYMENT_NAME": "env-llm",
-                "SLM_DEPLOYMENT_NAME": "env-slm",
-                "CONTENT_SAFETY_ENDPOINT": "https://env.cognitiveservices.azure.com",
+            config_path.write_text(_minimal_settings(), encoding="utf-8")
+            env = _azure_env() | {
                 "SAFE_RESPONSE": "Blocked by environment safety policy.",
             }
 
@@ -142,12 +65,6 @@ class ConfigTests(unittest.TestCase):
             config_path = Path(temp_dir) / "settings.toml"
             config_path.write_text(
                 """
-                [azure]
-                openai_endpoint = "https://file.openai.azure.com"
-                llm_deployment_name = "file-llm"
-                slm_deployment_name = "file-slm"
-                content_safety_endpoint = "https://file.cognitiveservices.azure.com"
-
                 [user]
                 name = "Avery"
                 role = "learner"
@@ -155,9 +72,59 @@ class ConfigTests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with patch.dict(os.environ, {}, clear=True):
+            with patch.dict(os.environ, _azure_env(), clear=True):
                 with self.assertRaisesRegex(ValueError, "safety.severity_threshold"):
                     load_config(config_path)
+
+    def test_load_config_requires_azure_env_vars(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "settings.toml"
+            config_path.write_text(_minimal_settings(), encoding="utf-8")
+
+            with patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(ValueError, "AZURE_OPENAI_ENDPOINT"):
+                    load_config(config_path)
+
+
+def _azure_env():
+    return {
+        "AZURE_OPENAI_ENDPOINT": "https://env.openai.azure.com",
+        "LLM_DEPLOYMENT_NAME": "env-llm",
+        "SLM_DEPLOYMENT_NAME": "env-slm",
+        "CONTENT_SAFETY_ENDPOINT": "https://env.cognitiveservices.azure.com",
+    }
+
+
+def _minimal_settings():
+    return """
+    [user]
+    name = "Avery"
+    role = "learner"
+
+    [safety]
+    severity_threshold = 2
+    safe_response = "Blocked by settings file safety policy."
+
+    [prompt]
+    max_system_tokens = 3000
+
+    [routing.llm]
+    max_past_messages = 10
+    max_tokens = 200
+    temperature = 0.5
+    top_p = 0.5
+
+    [routing.slm]
+    max_past_messages = 5
+    max_tokens = 100
+    temperature = 0.1
+    top_p = 0.25
+
+    [routing.intent_classifier]
+    max_tokens = 5
+    temperature = 0
+    top_p = 1.0
+    """
 
 
 if __name__ == "__main__":

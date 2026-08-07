@@ -15,8 +15,8 @@ Project shape:
 
 Configuration:
 
-- Non-secret app settings live in `settings.toml`.
-- Azure endpoint/deployment values may be overridden with environment variables.
+- Non-secret app behavior settings live in `settings.toml`.
+- Azure endpoint/deployment values are required environment variables.
 - Do not commit secrets, tokens, or local-only settings.
 
 Before finishing changes, run:

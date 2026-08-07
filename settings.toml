@@ -1,11 +1,5 @@
-# Store simple, non-secret app behavior here. Azure resource values can be
-# overridden with environment variables; behavior settings stay in this file.
-
-[azure]
-openai_endpoint = "https://<your-foundry-resource>.openai.azure.com/openai/v1/"
-content_safety_endpoint = "https://<your-content-safety-resource>.cognitiveservices.azure.com/"
-llm_deployment_name = "gpt-4.1-mini"
-slm_deployment_name = "phi-4"
+# Store simple, non-secret app behavior here.
+# Azure resource values are configured with environment variables.
 
 [user]
 name = "customer"

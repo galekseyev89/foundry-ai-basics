@@ -84,30 +84,10 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
     settings = _load_settings(config_path)
 
     return AppConfig(
-        azure_openai_endpoint=_env_or_config_setting(
-            settings,
-            "AZURE_OPENAI_ENDPOINT",
-            ["azure", "openai_endpoint"],
-            required=True,
-        ),
-        llm_deployment_name=_env_or_config_setting(
-            settings,
-            "LLM_DEPLOYMENT_NAME",
-            ["azure", "llm_deployment_name"],
-            required=True,
-        ),
-        slm_deployment_name=_env_or_config_setting(
-            settings,
-            "SLM_DEPLOYMENT_NAME",
-            ["azure", "slm_deployment_name"],
-            required=True,
-        ),
-        content_safety_endpoint=_env_or_config_setting(
-            settings,
-            "CONTENT_SAFETY_ENDPOINT",
-            ["azure", "content_safety_endpoint"],
-            required=True,
-        ),
+        azure_openai_endpoint=_required_env("AZURE_OPENAI_ENDPOINT"),
+        llm_deployment_name=_required_env("LLM_DEPLOYMENT_NAME"),
+        slm_deployment_name=_required_env("SLM_DEPLOYMENT_NAME"),
+        content_safety_endpoint=_required_env("CONTENT_SAFETY_ENDPOINT"),
         user_name=_required_config_setting(settings, ["user", "name"]),
         user_role=_required_config_setting(settings, ["user", "role"]),
         severity_threshold=_required_int_setting(
@@ -174,25 +154,12 @@ def _load_settings(config_path: str | Path | None) -> dict[str, Any]:
         return tomllib.load(config_file)
 
 
-def _env_or_config_setting(
-    settings: dict[str, Any],
-    env_name: str,
-    path: list[str],
-    default: Any = None,
-    required: bool = False,
-) -> Any:
+def _required_env(env_name: str) -> str:
     env_value = os.getenv(env_name)
-    if env_value is not None:
+    if env_value:
         return env_value
 
-    value = _nested_value(settings, path, default)
-    if required and value in (None, ""):
-        joined_path = ".".join(path)
-        raise ValueError(
-            f"Missing required setting: {joined_path} or environment variable {env_name}"
-        )
-
-    return value
+    raise ValueError(f"Missing required environment variable: {env_name}")
 
 
 def _optional_config_setting(settings: dict[str, Any], path: list[str]) -> Any:

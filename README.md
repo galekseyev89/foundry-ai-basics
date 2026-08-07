@@ -20,7 +20,15 @@ pip install -r requirements.txt
 az login
 ```
 
-Edit `settings.toml` with your Azure endpoints and deployment names.
+Edit `settings.toml` for sample behavior. Set Azure values with environment
+variables:
+
+```powershell
+$env:AZURE_OPENAI_ENDPOINT = "https://<your-foundry-resource>.services.ai.azure.com/openai/v1"
+$env:CONTENT_SAFETY_ENDPOINT = "https://<your-content-safety-resource>.cognitiveservices.azure.com/"
+$env:LLM_DEPLOYMENT_NAME = "<your-llm-deployment>"
+$env:SLM_DEPLOYMENT_NAME = "<your-slm-deployment>"
+```
 
 ## Run Tests
 
