@@ -20,6 +20,20 @@ pip install -r requirements.txt
 az login
 ```
 
+## Deploy Azure Resources
+
+Run deployment commands from the `deployment/` folder.
+
+Use `foundry-ai-basics.sh` as a command reference:
+
+- The provisioning commands create the resource group, deploy the Bicep file,
+  and print the deployment outputs.
+- Use the deployment outputs to set the environment variables below.
+- The cleanup commands delete or purge Azure resources when you are finished,
+  so you do not continue to incur cost.
+
+## Environment Variables
+
 Edit `settings.toml` for sample behavior. Set Azure values with environment
 variables:
 
