@@ -44,7 +44,7 @@ $env:LLM_DEPLOYMENT_NAME = "<your-llm-deployment>"
 $env:SLM_DEPLOYMENT_NAME = "<your-slm-deployment>"
 ```
 
-## Run Tests
+## Test
 
 ```powershell
 $env:PYTHONPATH='src'
