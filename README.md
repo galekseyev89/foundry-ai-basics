@@ -9,6 +9,7 @@ Small Azure AI Foundry practice app for AI-103 learning.
 - `clients.py` creates Azure clients.
 - `display.py` prints output.
 - `ai/` contains prompts, routing, and safety logic.
+- `deployment/` contains Azure deployment files.
 
 ## Setup
 

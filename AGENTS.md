@@ -22,5 +22,5 @@ Configuration:
 Before finishing changes, run:
 
 ```powershell
-$env:PYTHONPATH='src'; $env:PYTHONDONTWRITEBYTECODE='1'; .\.venv\Scripts\python.exe -m unittest discover
+$env:PYTHONPATH='src'; .\.venv\Scripts\python.exe -m unittest discover
 ```
