@@ -7,15 +7,14 @@ from foundry_ai_basics.ai.prompts import (
 )
 from foundry_ai_basics.ai.routing import route_to_model
 from foundry_ai_basics.ai.safety import is_text_safe
-from foundry_ai_basics.azure_clients.clients import (
+from foundry_ai_basics.clients import (
     create_content_safety_client,
     create_openai_client,
 )
-from foundry_ai_basics.core.config import load_config
-from foundry_ai_basics.presentation.display import (
+from foundry_ai_basics.config import load_config
+from foundry_ai_basics.display import (
     format_reply,
-    print_performance_metrics,
-    print_routing_explanation,
+    print_performance_metrics
 )
 
 
@@ -66,19 +65,7 @@ def main() -> None:
     result = route_to_model(
         openai_client,
         user_message_text,
-        intent_classifier_max_tokens=config.intent_classifier.max_tokens,
-        intent_classifier_temperature=config.intent_classifier.temperature,
-        intent_classifier_top_p=config.intent_classifier.top_p,
-        llm_model_deployment_name=config.llm_deployment_name,
-        llm_max_past_messages=config.llm.max_past_messages,
-        llm_max_tokens=config.llm.max_tokens,
-        llm_temperature=config.llm.temperature,
-        llm_top_p=config.llm.top_p,
-        slm_model_deployment_name=config.slm_deployment_name,
-        slm_max_past_messages=config.slm.max_past_messages,
-        slm_max_tokens=config.slm.max_tokens,
-        slm_temperature=config.slm.temperature,
-        slm_top_p=config.slm.top_p,
+        config.routing,
         messages=messages,
     )
 
@@ -96,7 +83,6 @@ def main() -> None:
         format_reply(result.reply)
 
     print_performance_metrics(result)
-    print_routing_explanation(result)
 
 
 if __name__ == "__main__":

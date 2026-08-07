@@ -2,7 +2,7 @@ from foundry_ai_basics.ai.routing import RoutingResult
 
 
 def format_reply(reply: str) -> None:
-    print("=" * 50)
+    print("=" * 50 + "\n")
     print(reply)
 
 
@@ -26,16 +26,3 @@ def print_performance_metrics(result: RoutingResult) -> None:
     else:
         estimated_cost = result.token_usage["total_tokens"] * 0.00001
         print(f"Estimated cost: ${estimated_cost:.6f} (LLM rates)")
-
-
-def print_routing_explanation(result: RoutingResult) -> None:
-    print("\n" + "=" * 50)
-    print("ROUTING DECISION EXPLANATION:")
-    print("=" * 50)
-
-    if result.intent == "simple":
-        print("Question classified as SIMPLE -> Routed to Phi-4 (faster, cheaper)")
-        print("Examples: greetings, basic facts, short answers")
-    else:
-        print("Question classified as COMPLEX -> Routed to GPT-4.1-Mini (more capable)")
-        print("Examples: analysis, comparison, planning, multi-step reasoning")

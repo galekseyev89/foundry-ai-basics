@@ -4,6 +4,12 @@ from typing import Any
 
 from openai import OpenAI
 
+from foundry_ai_basics.config import (
+    IntentClassifierConfig,
+    RoutedModelConfig,
+    RoutingConfig,
+)
+
 
 @dataclass(frozen=True)
 class RoutingResult:
@@ -19,9 +25,7 @@ def classify_intent_via_slm(
     client: OpenAI,
     user_question: str,
     deployment_name: str,
-    max_tokens: int,
-    temperature: float,
-    top_p: float,
+    config: IntentClassifierConfig,
 ) -> str:
     system_instruction = """
     You classify questions or user prompts as either "simple" or "complex":
@@ -41,9 +45,9 @@ def classify_intent_via_slm(
     response = client.chat.completions.create(
         model=deployment_name,
         messages=messages,
-        max_completion_tokens=max_tokens,
-        temperature=temperature,
-        top_p=top_p,
+        max_completion_tokens=config.max_tokens,
+        temperature=config.temperature,
+        top_p=config.top_p,
     )
 
     classification = response.choices[0].message.content.strip().lower()
@@ -59,74 +63,40 @@ def classify_intent_via_slm(
 def route_to_model(
     client: OpenAI,
     user_question: str,
-
-    intent_classifier_max_tokens: int,
-    intent_classifier_temperature: float,
-    intent_classifier_top_p: float,
-    
-    llm_model_deployment_name: str,
-    llm_max_past_messages: int,
-    llm_max_tokens: int,
-    llm_temperature: float,
-    llm_top_p: float,
-
-    slm_model_deployment_name: str,
-    slm_max_past_messages: int,
-    slm_max_tokens: int,
-    slm_temperature: float,
-    slm_top_p: float,
-    
-    messages: list[dict[str, str]]
+    routing: RoutingConfig,
+    messages: list[dict[str, str]],
 ) -> RoutingResult:
     """
     Route question to appropriate model based on intent classification.
-    Returns: (response_text, model_name, latency_ms, token_usage)
     """
-  
-    print(f"\n[INTENT CLASSIFIER]: Using SLM ({slm_model_deployment_name}) for classification...")
+
+    print(
+        f"\n[INTENT CLASSIFIER]: Using SLM ({routing.slm.deployment_name}) for classification..."
+    )
     intent = classify_intent_via_slm(
         client,
         user_question,
-        slm_model_deployment_name,
-        intent_classifier_max_tokens,
-        intent_classifier_temperature,
-        intent_classifier_top_p,
+        routing.slm.deployment_name,
+        routing.intent_classifier,
     )
 
-    print(f"\n[INTENT CLASSIFIER]: Question classified as: {intent.upper()}")
+    print(f"[INTENT CLASSIFIER]: Question classified as: {intent.upper()}")
 
-    if intent == "simple":
-        print(f"[ROUTING]: Sending to ({slm_model_deployment_name}) - faster and cheaper")
-
-        model_type = "SLM"
-        model_name = slm_model_deployment_name
-        max_past_messages = slm_max_past_messages
-        max_tokens = slm_max_tokens
-        temperature = slm_temperature
-        top_p = slm_top_p
-    else:
-        print(
-            f"[ROUTING]: Sending to ({llm_model_deployment_name}) - more capable for complex tasks"
-        )
-        model_type = "LLM"
-        model_name = llm_model_deployment_name
-        max_past_messages = llm_max_past_messages
-        max_tokens = llm_max_tokens
-        temperature = llm_temperature
-        top_p = llm_top_p
+    selected_model = _select_model(intent, routing)
+    _print_routing_decision(selected_model)
 
     messages = messages[
-        -max_past_messages:
+        -selected_model.max_past_messages:
     ]  # Keep only the most recent messages within the limit
 
     start_time = time.time()
 
     response = client.chat.completions.create(
-        model=model_name,
+        model=selected_model.deployment_name,
         messages=messages,
-        max_completion_tokens=max_tokens,  # Set the maximum length of the response
-        temperature=temperature,  # Control the creativity of the response
-        top_p=top_p,  # Control the diversity of the token selection
+        max_completion_tokens=selected_model.max_tokens,
+        temperature=selected_model.temperature,
+        top_p=selected_model.top_p,
     )
 
     latency_ms = (time.time() - start_time) * 1000
@@ -134,11 +104,28 @@ def route_to_model(
 
     return RoutingResult(
         reply=reply,
-        model_name=model_name,
-        model_type=model_type,
+        model_name=selected_model.deployment_name,
+        model_type=selected_model.model_type,
         intent=intent,
         latency_ms=latency_ms,
         token_usage=_extract_token_usage(response),
+    )
+
+
+def _select_model(intent: str, routing: RoutingConfig) -> RoutedModelConfig:
+    if intent == "simple":
+        return routing.slm
+
+    return routing.llm
+
+
+def _print_routing_decision(model: RoutedModelConfig) -> None:
+    if model.model_type == "SLM":
+        print(f"[ROUTING]: Sending to ({model.deployment_name}) - faster and cheaper")
+        return
+
+    print(
+        f"[ROUTING]: Sending to ({model.deployment_name}) - more capable for complex tasks"
     )
 
 

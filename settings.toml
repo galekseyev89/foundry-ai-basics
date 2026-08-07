@@ -1,0 +1,37 @@
+# Store simple, non-secret app behavior here. Azure resource values can be
+# overridden with environment variables; behavior settings stay in this file.
+
+[azure]
+openai_endpoint = "https://<your-foundry-resource>.openai.azure.com/openai/v1/"
+content_safety_endpoint = "https://<your-content-safety-resource>.cognitiveservices.azure.com/"
+llm_deployment_name = "gpt-4.1-mini"
+slm_deployment_name = "phi-4"
+
+[user]
+name = "customer"
+role = "customer"
+
+[safety]
+severity_threshold = 1
+safe_response = "I cannot generate a response to this request."
+
+[prompt]
+max_system_tokens = 4000
+session_state = "awaiting_order_number - user asked about refund but no order number"
+
+[routing.intent_classifier]
+max_tokens = 5
+temperature = 0
+top_p = 1.0
+
+[routing.llm]
+max_past_messages = 10
+max_tokens = 150
+temperature = 0.5
+top_p = 0.5
+
+[routing.slm]
+max_past_messages = 5
+max_tokens = 100
+temperature = 0.25
+top_p = 0.25
