@@ -32,11 +32,39 @@ def main() -> None:
     search_index_client = create_search_index_client(config)
     search_client = create_search_client(config)
 
+    # Step 1: Create index
+    create_index(search_index_client, config.search_index_name)
+
+    # Step 2: Upload documents
+    upload_documents(
+        search_client,
+        openai_client,
+        config.embedding_model_deployment_name,
+    )
+
+    user_message_text = "Hey whats going with my order 67890? I want a refund!"
+    #user_message_text = "Hey, how its goiing?"
+
+    if not is_text_safe(
+        content_safety_client,
+        user_message_text,
+        config.severity_threshold,
+    ):
+        format_reply(config.safe_response)
+        return
+
+    grounding_results = search_documents(
+        search_client,
+        openai_client,
+        config.embedding_model_deployment_name,
+        user_message_text,
+    )
+
     system_instruction = build_system_instruction(
         user_name=config.user_name,
         user_role=config.user_role,
         session_state=config.session_state,
-        grounding_results=config.grounding_results,
+        grounding_results=grounding_results,
     )
 
     token_count = count_tokens(system_instruction, model=config.llm_deployment_name)
@@ -48,47 +76,8 @@ def main() -> None:
         )
 
     system_message = {"role": "system", "content": system_instruction}
-
-    # user_message_text = (
-    #     "My order number is 12345. I want to return my 70 inch TV. Can you help me?"
-    # )
-
-    # user_message_text = (
-    #     "This is a simple request: I need to understand what is happening to my "
-    #     "refund request. Can you analyze the situation and tell me why it is "
-    #     "taking so long?"
-    # )
-
-    user_message_text = "I want to learn how to use docker to deploy a web application. Can you provide me with a step-by-step guide?"
-
-    if not is_text_safe(
-        content_safety_client,
-        user_message_text,
-        config.severity_threshold,
-    ):
-        format_reply(config.safe_response)
-        return
-
     user_message = {"role": "user", "content": user_message_text}
     messages = [system_message, user_message]
-
-    # Step 1: Create index
-    create_index(search_index_client, config.search_index_name)
-
-    # Step 2: Upload documents
-    upload_documents(
-        search_client,
-        openai_client,
-        config.embedding_model_deployment_name,
-    )
-
-    # Step 3: Run the search
-    search_documents(
-        search_client,
-        openai_client,
-        config.embedding_model_deployment_name,
-        user_message_text,
-    )
 
     result = route_to_model(
         openai_client,

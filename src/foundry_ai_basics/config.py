@@ -58,8 +58,6 @@ class AppConfig:
     safe_response: str
     max_system_tokens: int
     session_state: str | None
-    grounding_results: str | None = None
-
     @property
     def routing(self) -> RoutingConfig:
         return RoutingConfig(
@@ -103,10 +101,6 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
             ["prompt", "max_system_tokens"],
         ),
         session_state=_optional_config_setting(settings, ["prompt", "session_state"]),
-        grounding_results=_optional_config_setting(
-            settings,
-            ["prompt", "grounding_results"],
-        ),
         search_service_endpoint=_required_env("SEARCH_SERVICE_ENDPOINT"),
         search_index_name=_required_config_setting(settings, ["search", "index_name"]),
         embedding_model_deployment_name=_required_env("EMBEDDING_MODEL_DEPLOYMENT_NAME"),

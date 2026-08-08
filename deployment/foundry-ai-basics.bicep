@@ -52,7 +52,7 @@ resource llmModelDeployment 'Microsoft.CognitiveServices/accounts/deployments@20
   parent: aiFoundry
   name: 'gpt-5.4-mini'
   sku: {
-    capacity: 1
+    capacity: 3
     name: 'GlobalStandard'
   }
   properties: {
@@ -71,7 +71,7 @@ resource slmModelDeployment 'Microsoft.CognitiveServices/accounts/deployments@20
     llmModelDeployment
   ]
   sku: {
-    capacity: 1
+    capacity: 3
     name: 'GlobalStandard'
   }
   properties: {
@@ -114,7 +114,7 @@ resource embeddingModelDeployment 'Microsoft.CognitiveServices/accounts/deployme
     slmModelDeployment
   ]
   sku : {
-    capacity: 1
+    capacity: 3
     name: 'GlobalStandard'
   }
   properties: {

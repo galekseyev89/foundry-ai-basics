@@ -26,46 +26,48 @@ SEMANTIC_CONFIG_NAME = "content-semantic-config"
 
 SAMPLE_DOCUMENTS = [
     {
-        "id": "1",
-        "title": "Azure Machine Learning Tutorial",
+        "id": "order-1",
+        "title": "Order: 55-inch 4K Smart TV",
         "content": (
-            "Azure Machine Learning provides a cloud-based environment for "
-            "training and deploying ML models."
+            "Order ID: 12345. Customer purchased a 55-inch 4K Ultra HD Smart TV, "
+            "brand: Contoso Electronics, model: UltraView 5500, serial number: TV-987654321. "
+            "Order date: 2024-11-15. Delivery address: 123 Main St, Sydney, NSW. "
+            "The TV features HDR, built-in Wi-Fi, and voice assistant support. "
         ),
-        "category": "tutorial",
+        "category": "order",
     },
     {
-        "id": "2",
-        "title": "Introduction to Python Programming",
+        "id": "order-2",
+        "title": "Order: Mountain Bike",
         "content": (
-            "Python is a versatile programming language used for web development, "
-            "data science, and AI."
+            "Order ID: 54321. Customer purchased a 21-speed mountain bike, "
+            "brand: AdventureCycles, model: TrailBlazer 3000. "
+            "Order date: 2023-07-10. Delivery address: 456 Elm St, Melbourne, VIC. "
+            "The bike features front suspension and disc brakes."
         ),
-        "category": "programming",
+        "category": "order",
     },
     {
-        "id": "3",
-        "title": "Azure AI Search Best Practices",
+        "id": "order-3",
+        "title": "Order: Espresso Coffee Machine",
         "content": (
-            "Learn how to optimize Azure AI Search for performance and cost "
-            "efficiency."
+            "Order ID: 67890. Customer purchased an espresso coffee machine, "
+            "brand: BrewMaster, model: ProBarista X2. "
+            "Order date: 2024-01-22. Delivery address: 789 Oak Ave, Brisbane, QLD. "
+            "The machine includes a milk frother and digital display."
         ),
-        "category": "best-practices",
+        "category": "order",
     },
     {
-        "id": "4",
-        "title": "Cloud Computing Fundamentals",
-        "content": "Understanding cloud computing concepts including IaaS, PaaS, and SaaS.",
-        "category": "fundamentals",
-    },
-    {
-        "id": "5",
-        "title": "Getting Started with Docker",
+        "id": "order-4",
+        "title": "Order: Yoga Mat",
         "content": (
-            "Docker containers help package applications with their dependencies "
-            "for consistent deployment."
+            "Order ID: 24680. Customer purchased a non-slip yoga mat, "
+            "brand: ZenFit, model: ComfortMat 6mm. "
+            "Order date: 2022-09-05. Delivery address: 321 Maple Rd, Perth, WA. "
+            "The mat is eco-friendly and lightweight."
         ),
-        "category": "devops",
+        "category": "order",
     },
 ]
 
@@ -221,29 +223,40 @@ def search_documents(
         print(f"Search failed: {error}")
         return []
 
-    matches = [dict(result) for result in search_results]
+    # Get total count
+    total_count = search_results.get_count()
 
-    if not matches:
-        print("No results found.")
+    if total_count == 0:
+        print("   No results found.\n")
         return []
 
-    print(f"Found {len(matches)} result(s):\n")
+    print(f"   Found {total_count} result(s):\n")
 
-    for index, result in enumerate(matches, 1):
-        score = result.get("@search.score", 0)
-        reranker_score = result.get("@search.reranker_score")
-        content = result.get("content", "")
+    results_formatted: list[dict[str, Any]] = []
+
+    for i, result in enumerate(search_results, 1):
+        print(f"{i}. {result['title']}")
+        print(f"   Category: {result['category']}")
+        print(f"   Score: {result.get('@search.score', 0):.4f}")
+        print(f"   Reranker Score: {result.get('@search.reranker_score', 0):.4f}")
+
+        # Show a snippet of the content
+        content = result["content"]
         snippet = content[:120] + "..." if len(content) > 120 else content
-
-        print(f"{index}. {result.get('title', '(untitled)')}")
-        print(f"   ID: {result.get('id', '(missing)')}")
-        print(f"   Category: {result.get('category', '(uncategorized)')}")
-        print(f"   Score: {score:.4f}")
-        if reranker_score is not None:
-            print(f"   Reranker score: {reranker_score:.4f}")
         print(f"   Preview: {snippet}\n")
 
-    return matches
+        results_formatted.append(
+            {
+                "rank": i,
+                "title": result.get("title"),
+                "category": result.get("category"),
+                "score": result.get("@search.score"),
+                "reranker_score": result.get("@search.reranker_score"),
+                "content": result.get("content"),
+            }
+        )
+
+    return results_formatted
 
 
 def _document_with_vector(
