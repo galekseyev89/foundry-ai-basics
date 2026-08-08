@@ -46,6 +46,8 @@ class AppConfig:
     llm_deployment_name: str
     slm_deployment_name: str
     content_safety_endpoint: str
+    search_service_endpoint: str
+    search_index_name: str
     user_name: str
     user_role: str
     intent_classifier: IntentClassifierConfig
@@ -104,6 +106,8 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
             settings,
             ["prompt", "grounding_results"],
         ),
+        search_service_endpoint=_required_env("SEARCH_SERVICE_ENDPOINT"),
+        search_index_name=_required_config_setting(settings, ["search", "index_name"]),
         intent_classifier=IntentClassifierConfig(
             max_tokens=_required_int_setting(
                 settings, ["routing", "intent_classifier", "max_tokens"]

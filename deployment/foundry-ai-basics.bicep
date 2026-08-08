@@ -3,6 +3,7 @@
 param aiFoundryName string = 'foundry-ai-basics'
 param aiProjectName string = '${aiFoundryName}-proj'
 param contentSafetyName string = '${aiFoundryName}-csafety'
+param aiSearchName string = '${aiFoundryName}-aisearch'
 param location string = resourceGroup().location
 
 /*
@@ -101,7 +102,24 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   }
 }
 
+// Azure AI Search resource
+resource searchService 'Microsoft.Search/searchServices@2023-11-01' = {
+  name: aiSearchName
+  location: location
+  sku: {
+    name: 'standard'
+  }
+  properties: {
+    replicaCount: 1
+    partitionCount: 1
+    hostingMode: 'default'
+    disableLocalAuth: true
+  }
+}
+
 output OPENAI_ENDPOINT string = 'https://${aiFoundry.properties.customSubDomainName}.services.ai.azure.com/openai/v1'
 output LLM_DEPLOYMENT_NAME string = llmModelDeployment.name
 output SLM_DEPLOYMENT_NAME string = slmModelDeployment.name
 output CONTENT_SAFETY_ENDPOINT string = 'https://${contentSafety.properties.customSubDomainName}.cognitiveservices.azure.com/'
+output SEARCH_SERVICE_ENDPOINT string = 'https://${searchService.name}.search.windows.net'
+output SEARCH_SERVICE_NAME string = searchService.name

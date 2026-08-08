@@ -9,6 +9,9 @@ role = "customer"
 severity_threshold = 1
 safe_response = "I cannot generate a response to this request."
 
+[search]
+index_name = "foundry-ai-basics-index"
+
 [prompt]
 max_system_tokens = 4000
 session_state = "awaiting_order_number - user asked about refund but no order number"

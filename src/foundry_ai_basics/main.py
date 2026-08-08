@@ -10,6 +10,13 @@ from foundry_ai_basics.ai.safety import is_text_safe
 from foundry_ai_basics.clients import (
     create_content_safety_client,
     create_openai_client,
+    create_search_client,
+    create_search_index_client,
+)
+from foundry_ai_basics.ai.search import (
+    create_index,
+    upload_documents,
+    search_documents,
 )
 from foundry_ai_basics.config import load_config
 from foundry_ai_basics.display import (
@@ -20,8 +27,13 @@ from foundry_ai_basics.display import (
 
 def main() -> None:
     config = load_config()
+    
     openai_client = create_openai_client(config)
+
     content_safety_client = create_content_safety_client(config)
+
+    search_index_client = create_search_index_client(config)
+    search_client = create_search_client(config)
 
     system_instruction = build_system_instruction(
         user_name=config.user_name,
@@ -44,12 +56,13 @@ def main() -> None:
     #     "My order number is 12345. I want to return my 70 inch TV. Can you help me?"
     # )
 
-    user_message_text = (
-        "This is a simple request: I need to understand what is happening to my "
-        "refund request. Can you analyze the situation and tell me why it is "
-        "taking so long?"
-    )
-    # user_message_text = "Hello, how are you?"
+    # user_message_text = (
+    #     "This is a simple request: I need to understand what is happening to my "
+    #     "refund request. Can you analyze the situation and tell me why it is "
+    #     "taking so long?"
+    # )
+
+    user_message_text = "How was seagul fest?"
 
     if not is_text_safe(
         content_safety_client,
@@ -61,6 +74,15 @@ def main() -> None:
 
     user_message = {"role": "user", "content": user_message_text}
     messages = [system_message, user_message]
+
+    # Step 1: Create index
+    create_index(search_index_client, config.search_index_name)
+
+    # Step 2: Upload documents
+    upload_documents(search_client)
+
+    # Step 3: Run the search
+    search_documents(search_client, user_message_text)
 
     result = route_to_model(
         openai_client,

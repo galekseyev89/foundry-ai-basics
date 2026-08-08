@@ -24,10 +24,17 @@ class ConfigTests(unittest.TestCase):
             config.content_safety_endpoint,
             "https://env.cognitiveservices.azure.com",
         )
+        self.assertEqual(
+            config.search_service_endpoint,
+            "https://env.search.windows.net",
+        )
+        self.assertEqual(config.search_index_name, "foundry-ai-basics-index")
         self.assertEqual(config.user_name, "Avery")
         self.assertEqual(config.user_role, "learner")
         self.assertEqual(config.severity_threshold, 2)
-        self.assertEqual(config.safe_response, "Blocked by settings file safety policy.")
+        self.assertEqual(
+            config.safe_response, "Blocked by settings file safety policy."
+        )
         self.assertEqual(config.max_system_tokens, 3000)
         self.assertEqual(config.llm.max_tokens, 200)
         self.assertEqual(config.llm.temperature, 0.5)
@@ -51,7 +58,14 @@ class ConfigTests(unittest.TestCase):
             config.content_safety_endpoint,
             "https://env.cognitiveservices.azure.com",
         )
-        self.assertEqual(config.safe_response, "Blocked by settings file safety policy.")
+        self.assertEqual(
+            config.search_service_endpoint,
+            "https://env.search.windows.net",
+        )
+        self.assertEqual(config.search_index_name, "foundry-ai-basics-index")
+        self.assertEqual(
+            config.safe_response, "Blocked by settings file safety policy."
+        )
         self.assertEqual(config.routing.intent_classifier.max_tokens, 5)
         self.assertEqual(config.routing.llm.deployment_name, "env-llm")
         self.assertEqual(config.routing.llm.model_type, "LLM")
@@ -92,6 +106,7 @@ def _azure_env():
         "LLM_DEPLOYMENT_NAME": "env-llm",
         "SLM_DEPLOYMENT_NAME": "env-slm",
         "CONTENT_SAFETY_ENDPOINT": "https://env.cognitiveservices.azure.com",
+        "SEARCH_SERVICE_ENDPOINT": "https://env.search.windows.net",
     }
 
 
@@ -107,6 +122,9 @@ def _minimal_settings():
 
     [prompt]
     max_system_tokens = 3000
+
+    [search]
+    index_name = "foundry-ai-basics-index"
 
     [routing.llm]
     max_past_messages = 10

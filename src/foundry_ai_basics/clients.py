@@ -1,5 +1,7 @@
 from azure.ai.contentsafety import ContentSafetyClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from azure.search.documents import SearchClient
+from azure.search.documents.indexes import SearchIndexClient
 from openai import OpenAI
 
 from foundry_ai_basics.config import AppConfig
@@ -15,5 +17,20 @@ def create_openai_client(config: AppConfig) -> OpenAI:
 def create_content_safety_client(config: AppConfig) -> ContentSafetyClient:
     return ContentSafetyClient(
         endpoint=config.content_safety_endpoint,
+        credential=DefaultAzureCredential(),
+    )
+
+
+def create_search_index_client(config: AppConfig) -> SearchIndexClient:
+    return SearchIndexClient(
+        endpoint=config.search_service_endpoint,
+        credential=DefaultAzureCredential(),
+    )
+
+
+def create_search_client(config: AppConfig) -> SearchClient:
+    return SearchClient(
+        endpoint=config.search_service_endpoint,
+        index_name=config.search_index_name,
         credential=DefaultAzureCredential(),
     )
