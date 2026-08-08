@@ -45,6 +45,7 @@ class AppConfig:
     azure_openai_endpoint: str
     llm_deployment_name: str
     slm_deployment_name: str
+    embedding_model_deployment_name: str
     content_safety_endpoint: str
     search_service_endpoint: str
     search_index_name: str
@@ -108,6 +109,7 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
         ),
         search_service_endpoint=_required_env("SEARCH_SERVICE_ENDPOINT"),
         search_index_name=_required_config_setting(settings, ["search", "index_name"]),
+        embedding_model_deployment_name=_required_env("EMBEDDING_MODEL_DEPLOYMENT_NAME"),
         intent_classifier=IntentClassifierConfig(
             max_tokens=_required_int_setting(
                 settings, ["routing", "intent_classifier", "max_tokens"]

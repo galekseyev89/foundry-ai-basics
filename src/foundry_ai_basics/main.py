@@ -19,15 +19,12 @@ from foundry_ai_basics.ai.search import (
     search_documents,
 )
 from foundry_ai_basics.config import load_config
-from foundry_ai_basics.display import (
-    format_reply,
-    print_performance_metrics
-)
+from foundry_ai_basics.display import format_reply, print_performance_metrics
 
 
 def main() -> None:
     config = load_config()
-    
+
     openai_client = create_openai_client(config)
 
     content_safety_client = create_content_safety_client(config)
@@ -62,7 +59,7 @@ def main() -> None:
     #     "taking so long?"
     # )
 
-    user_message_text = "How was seagul fest?"
+    user_message_text = "I want to learn how to use docker to deploy a web application. Can you provide me with a step-by-step guide?"
 
     if not is_text_safe(
         content_safety_client,
@@ -79,10 +76,19 @@ def main() -> None:
     create_index(search_index_client, config.search_index_name)
 
     # Step 2: Upload documents
-    upload_documents(search_client)
+    upload_documents(
+        search_client,
+        openai_client,
+        config.embedding_model_deployment_name,
+    )
 
     # Step 3: Run the search
-    search_documents(search_client, user_message_text)
+    search_documents(
+        search_client,
+        openai_client,
+        config.embedding_model_deployment_name,
+        user_message_text,
+    )
 
     result = route_to_model(
         openai_client,

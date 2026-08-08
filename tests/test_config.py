@@ -20,6 +20,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.azure_openai_endpoint, "https://env.openai.azure.com")
         self.assertEqual(config.llm_deployment_name, "env-llm")
         self.assertEqual(config.slm_deployment_name, "env-slm")
+        self.assertEqual(config.embedding_model_deployment_name, "env-embedding")
         self.assertEqual(
             config.content_safety_endpoint,
             "https://env.cognitiveservices.azure.com",
@@ -54,6 +55,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.azure_openai_endpoint, "https://env.openai.azure.com")
         self.assertEqual(config.llm_deployment_name, "env-llm")
         self.assertEqual(config.slm_deployment_name, "env-slm")
+        self.assertEqual(config.embedding_model_deployment_name, "env-embedding")
         self.assertEqual(
             config.content_safety_endpoint,
             "https://env.cognitiveservices.azure.com",
@@ -105,6 +107,7 @@ def _azure_env():
         "AZURE_OPENAI_ENDPOINT": "https://env.openai.azure.com",
         "LLM_DEPLOYMENT_NAME": "env-llm",
         "SLM_DEPLOYMENT_NAME": "env-slm",
+        "EMBEDDING_MODEL_DEPLOYMENT_NAME": "env-embedding",
         "CONTENT_SAFETY_ENDPOINT": "https://env.cognitiveservices.azure.com",
         "SEARCH_SERVICE_ENDPOINT": "https://env.search.windows.net",
     }

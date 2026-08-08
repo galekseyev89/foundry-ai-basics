@@ -4,10 +4,25 @@ from azure.core.exceptions import ResourceNotFoundError
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
+    HnswAlgorithmConfiguration,
     SearchableField,
+    SearchField,
     SearchIndex,
+    SemanticConfiguration,
+    SemanticField,
+    SemanticPrioritizedFields,
+    SemanticSearch,
     SimpleField,
+    VectorSearch,
+    VectorSearchProfile,
 )
+from azure.search.documents.models import VectorizedQuery
+from openai import OpenAI
+
+VECTOR_DIMENSIONS = 1536
+VECTOR_PROFILE_NAME = "content-vector-profile"
+VECTOR_ALGORITHM_NAME = "content-vector-hnsw"
+SEMANTIC_CONFIG_NAME = "content-semantic-config"
 
 SAMPLE_DOCUMENTS = [
     {
@@ -55,6 +70,19 @@ SAMPLE_DOCUMENTS = [
 ]
 
 
+def generate_embeddings(
+    openai_client: OpenAI,
+    embedding_deployment_name: str,
+    text: str,
+):
+    """Generate a vector embedding for the given text."""
+    response = openai_client.embeddings.create(
+        input=text,
+        model=embedding_deployment_name,
+    )
+    return response.data[0].embedding
+
+
 def create_index(
     index_client: SearchIndexClient,
     index_name: str,
@@ -67,8 +95,39 @@ def create_index(
         SearchableField(name="title", type="Edm.String"),
         SearchableField(name="content", type="Edm.String"),
         SimpleField(name="category", type="Edm.String", filterable=True),
+        SearchField(
+            name="content_vector",
+            type="Collection(Edm.Single)",
+            vector_search_dimensions=VECTOR_DIMENSIONS,
+            vector_search_profile_name=VECTOR_PROFILE_NAME,
+        ),
     ]
-    index = SearchIndex(name=index_name, fields=fields)
+    vector_search = VectorSearch(
+        algorithms=[HnswAlgorithmConfiguration(name=VECTOR_ALGORITHM_NAME)],
+        profiles=[
+            VectorSearchProfile(
+                name=VECTOR_PROFILE_NAME,
+                algorithm_configuration_name=VECTOR_ALGORITHM_NAME,
+            )
+        ],
+    )
+    semantic_search = SemanticSearch(
+        configurations=[
+            SemanticConfiguration(
+                name=SEMANTIC_CONFIG_NAME,
+                prioritized_fields=SemanticPrioritizedFields(
+                    title_field=SemanticField(field_name="title"),
+                    content_fields=[SemanticField(field_name="content")],
+                ),
+            )
+        ]
+    )
+    index = SearchIndex(
+        name=index_name,
+        fields=fields,
+        vector_search=vector_search,
+        semantic_search=semantic_search,
+    )
 
     try:
         index_client.get_index(index_name)
@@ -91,14 +150,24 @@ def create_index(
 
 def upload_documents(
     search_client: SearchClient,
+    openai_client: OpenAI,
+    embedding_deployment_name: str,
     documents: list[dict[str, str]] | None = None,
 ) -> bool:
-    """Upload sample documents to the search index."""
+    """Upload sample documents with embeddings to the search index."""
     documents_to_upload = documents or SAMPLE_DOCUMENTS
     print(f"Uploading {len(documents_to_upload)} document(s) to the search index...")
 
     try:
-        results = search_client.upload_documents(documents=documents_to_upload)
+        documents_with_vectors = [
+            _document_with_vector(
+                openai_client,
+                embedding_deployment_name,
+                document,
+            )
+            for document in documents_to_upload
+        ]
+        results = search_client.upload_documents(documents=documents_with_vectors)
     except Exception as error:
         print(f"Failed to upload documents: {error}")
         return False
@@ -118,6 +187,8 @@ def upload_documents(
 
 def search_documents(
     search_client: SearchClient,
+    openai_client: OpenAI,
+    embedding_deployment_name: str,
     question: str,
     top: int = 5,
 ) -> list[dict[str, Any]]:
@@ -126,16 +197,31 @@ def search_documents(
     print("-" * 60)
 
     try:
+        question_vector = generate_embeddings(
+            openai_client,
+            embedding_deployment_name,
+            question,
+        )
         search_results = search_client.search(
             search_text=question,
+            vector_queries=[
+                VectorizedQuery(
+                    vector=question_vector,
+                    fields="content_vector",
+                    k_nearest_neighbors=top,
+                )
+            ],
+            query_type="semantic",
+            semantic_configuration_name=SEMANTIC_CONFIG_NAME,
             select=["id", "title", "content", "category"],
             include_total_count=True,
             top=top,
         )
-        matches = [dict(result) for result in search_results]
     except Exception as error:
         print(f"Search failed: {error}")
         return []
+
+    matches = [dict(result) for result in search_results]
 
     if not matches:
         print("No results found.")
@@ -145,6 +231,7 @@ def search_documents(
 
     for index, result in enumerate(matches, 1):
         score = result.get("@search.score", 0)
+        reranker_score = result.get("@search.reranker_score")
         content = result.get("content", "")
         snippet = content[:120] + "..." if len(content) > 120 else content
 
@@ -152,6 +239,23 @@ def search_documents(
         print(f"   ID: {result.get('id', '(missing)')}")
         print(f"   Category: {result.get('category', '(uncategorized)')}")
         print(f"   Score: {score:.4f}")
+        if reranker_score is not None:
+            print(f"   Reranker score: {reranker_score:.4f}")
         print(f"   Preview: {snippet}\n")
 
     return matches
+
+
+def _document_with_vector(
+    openai_client: OpenAI,
+    embedding_deployment_name: str,
+    document: dict[str, str],
+) -> dict[str, Any]:
+    return {
+        **document,
+        "content_vector": generate_embeddings(
+            openai_client,
+            embedding_deployment_name,
+            document["content"],
+        ),
+    }

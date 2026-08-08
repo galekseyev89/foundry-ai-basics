@@ -102,6 +102,30 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   }
 }
 
+/*
+  Deploying models to use in playground, agents and other tools.
+*/
+
+// https://ai.azure.com/catalog/models/text-embedding-3-small
+resource embeddingModelDeployment 'Microsoft.CognitiveServices/accounts/deployments@2025-06-01'= {
+  parent: aiFoundry
+  name: 'text-embedding-3-small'
+  dependsOn: [
+    slmModelDeployment
+  ]
+  sku : {
+    capacity: 1
+    name: 'GlobalStandard'
+  }
+  properties: {
+    model:{
+      name: 'text-embedding-3-small' // 1536 dimensions, good for semantic search and embedding use cases
+      format: 'OpenAI'
+      version: '1'
+    }
+  }
+}
+
 // Azure AI Search resource
 resource searchService 'Microsoft.Search/searchServices@2023-11-01' = {
   name: aiSearchName
@@ -123,3 +147,4 @@ output SLM_DEPLOYMENT_NAME string = slmModelDeployment.name
 output CONTENT_SAFETY_ENDPOINT string = 'https://${contentSafety.properties.customSubDomainName}.cognitiveservices.azure.com/'
 output SEARCH_SERVICE_ENDPOINT string = 'https://${searchService.name}.search.windows.net'
 output SEARCH_SERVICE_NAME string = searchService.name
+output EMBEDDING_MODEL_DEPLOYMENT_NAME string = embeddingModelDeployment.name
