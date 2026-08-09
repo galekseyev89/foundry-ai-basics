@@ -110,6 +110,10 @@ def _azure_env():
         "EMBEDDING_MODEL_DEPLOYMENT_NAME": "env-embedding",
         "CONTENT_SAFETY_ENDPOINT": "https://env.cognitiveservices.azure.com",
         "SEARCH_SERVICE_ENDPOINT": "https://env.search.windows.net",
+        "REST_API_ENDPOINT": "https://env.example.test/orders",
+        "REST_API_KEY": "env-rest-key",
+        "EXCHANGE_RATE_API_ENDPOINT": "https://env.example.test/rates",
+        "EXCHANGE_RATE_API_KEY": "env-exchange-key",
     }
 
 

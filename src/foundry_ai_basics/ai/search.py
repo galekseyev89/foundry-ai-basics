@@ -247,6 +247,7 @@ def search_documents(
 
         results_formatted.append(
             {
+                "id": result.get("id"),
                 "rank": i,
                 "title": result.get("title"),
                 "category": result.get("category"),

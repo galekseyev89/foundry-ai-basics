@@ -46,6 +46,10 @@ class AppConfig:
     llm_deployment_name: str
     slm_deployment_name: str
     embedding_model_deployment_name: str
+    rest_api_endpoint: str
+    rest_api_key: str
+    exchange_rate_api_endpoint: str
+    exchange_rate_api_key: str
     content_safety_endpoint: str
     search_service_endpoint: str
     search_index_name: str
@@ -88,6 +92,11 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
         azure_openai_endpoint=_required_env("AZURE_OPENAI_ENDPOINT"),
         llm_deployment_name=_required_env("LLM_DEPLOYMENT_NAME"),
         slm_deployment_name=_required_env("SLM_DEPLOYMENT_NAME"),
+        embedding_model_deployment_name=_required_env("EMBEDDING_MODEL_DEPLOYMENT_NAME"),
+        rest_api_endpoint=_required_env("REST_API_ENDPOINT"),
+        rest_api_key=_required_env("REST_API_KEY"),
+        exchange_rate_api_endpoint=_required_env("EXCHANGE_RATE_API_ENDPOINT"),
+        exchange_rate_api_key=_required_env("EXCHANGE_RATE_API_KEY"),
         content_safety_endpoint=_required_env("CONTENT_SAFETY_ENDPOINT"),
         user_name=_required_config_setting(settings, ["user", "name"]),
         user_role=_required_config_setting(settings, ["user", "role"]),
@@ -103,7 +112,6 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
         session_state=_optional_config_setting(settings, ["prompt", "session_state"]),
         search_service_endpoint=_required_env("SEARCH_SERVICE_ENDPOINT"),
         search_index_name=_required_config_setting(settings, ["search", "index_name"]),
-        embedding_model_deployment_name=_required_env("EMBEDDING_MODEL_DEPLOYMENT_NAME"),
         intent_classifier=IntentClassifierConfig(
             max_tokens=_required_int_setting(
                 settings, ["routing", "intent_classifier", "max_tokens"]

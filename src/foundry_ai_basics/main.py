@@ -18,6 +18,9 @@ from foundry_ai_basics.ai.search import (
     upload_documents,
     search_documents,
 )
+from foundry_ai_basics.ai.tools import (
+    get_available_tools,
+)
 from foundry_ai_basics.config import load_config
 from foundry_ai_basics.display import format_reply, print_performance_metrics
 
@@ -42,8 +45,8 @@ def main() -> None:
         config.embedding_model_deployment_name,
     )
 
-    user_message_text = "Hey whats going with my order 67890? I want a refund!"
-    #user_message_text = "Hey, how its goiing?"
+    #user_message_text = "Hey whats going with my order 67890? I want a refund!"
+    user_message_text = "Hey, I want to discuss with a real person immediately"
 
     if not is_text_safe(
         content_safety_client,
@@ -84,6 +87,7 @@ def main() -> None:
         user_message_text,
         config.routing,
         messages=messages,
+        tools=get_available_tools()
     )
 
     if result.reply is None:
