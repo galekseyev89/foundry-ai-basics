@@ -1,5 +1,6 @@
 import sys
 
+from foundry_ai_basics import config
 from foundry_ai_basics.ai.prompts import (
     build_system_instruction,
     count_tokens,
@@ -9,6 +10,7 @@ from foundry_ai_basics.ai.routing import route_to_model
 from foundry_ai_basics.ai.safety import is_text_safe
 from foundry_ai_basics.clients import (
     create_content_safety_client,
+    create_mcp_client,
     create_openai_client,
     create_search_client,
     create_search_index_client,
@@ -18,9 +20,7 @@ from foundry_ai_basics.ai.search import (
     upload_documents,
     search_documents,
 )
-from foundry_ai_basics.ai.tools import (
-    get_available_tools,
-)
+
 from foundry_ai_basics.config import load_config
 from foundry_ai_basics.display import format_reply, print_performance_metrics
 
@@ -35,6 +35,8 @@ def main() -> None:
     search_index_client = create_search_index_client(config)
     search_client = create_search_client(config)
 
+    mcp_client = create_mcp_client(config)
+
     # Step 1: Create index
     create_index(search_index_client, config.search_index_name)
 
@@ -46,7 +48,7 @@ def main() -> None:
     )
 
     #user_message_text = "Hey whats going with my order 67890? I want a refund!"
-    user_message_text = "Hey, I want to discuss with a real person immediately"
+    user_message_text = "search for repositories owned by **galekseyev89** and list them"
 
     if not is_text_safe(
         content_safety_client,
@@ -84,10 +86,10 @@ def main() -> None:
 
     result = route_to_model(
         openai_client,
+        mcp_client,
         user_message_text,
         config.routing,
-        messages=messages,
-        tools=get_available_tools()
+        messages=messages
     )
 
     if result.reply is None:

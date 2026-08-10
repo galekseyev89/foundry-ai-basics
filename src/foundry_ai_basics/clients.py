@@ -5,7 +5,7 @@ from azure.search.documents.indexes import SearchIndexClient
 from openai import OpenAI
 
 from foundry_ai_basics.config import AppConfig
-
+from foundry_ai_basics.ai.mcp import MCPToolClient
 
 def create_openai_client(config: AppConfig) -> OpenAI:
     token_provider = get_bearer_token_provider(
@@ -33,4 +33,10 @@ def create_search_client(config: AppConfig) -> SearchClient:
         endpoint=config.search_service_endpoint,
         index_name=config.search_index_name,
         credential=DefaultAzureCredential(),
+    )
+
+def create_mcp_client(config: AppConfig):
+    return MCPToolClient(
+        server_url=config.mcp_server_url,
+        api_key=config.mcp_api_key,
     )

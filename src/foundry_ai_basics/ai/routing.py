@@ -6,6 +6,7 @@ from typing import Any
 
 from openai import OpenAI
 
+from foundry_ai_basics.ai.mcp import MCPToolClient
 from foundry_ai_basics.config import (
     IntentClassifierConfig,
     RoutedModelConfig,
@@ -66,10 +67,10 @@ def classify_intent_via_slm(
 
 def route_to_model(
     client: OpenAI,
+    mcp_client: MCPToolClient,
     user_question: str,
     routing: RoutingConfig,
-    messages: list[dict[str, str]],
-    tools: list[dict[str, Any]] | None = None,
+    messages: list[dict[str, str]]
 ) -> RoutingResult:
     """
     Route question to appropriate model based on intent classification.
@@ -103,6 +104,9 @@ def route_to_model(
         "temperature": selected_model.temperature,
         "top_p": selected_model.top_p,
     }
+
+    tools = mcp_client.list_tools()
+
     if tools:
         request_args["tools"] = tools
 
@@ -123,7 +127,7 @@ def route_to_model(
             tool_name = tool_call.function.name
             tool_arguments = json.loads(tool_call.function.arguments)
             tool_call_id = tool_call.id
-            tool_result = execute_tool_with_retry(tool_name, tool_arguments)
+            tool_result = mcp_client.execute_tool_with_retry(tool_name, tool_arguments)
             tool_response = {
                 "role": "tool",
                 "tool_call_id": tool_call_id,
@@ -157,8 +161,7 @@ def _assistant_message_with_tool_calls(message: Any) -> dict[str, Any]:
         "role": "assistant",
         "content": message.content,
         "tool_calls": [
-            tool_call.model_dump(exclude_none=True)
-            for tool_call in message.tool_calls
+            tool_call.model_dump(exclude_none=True) for tool_call in message.tool_calls
         ],
     }
 
