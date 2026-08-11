@@ -4,6 +4,9 @@ param aiFoundryName string = 'foundry-ai-basics'
 param aiProjectName string = '${aiFoundryName}-proj'
 param contentSafetyName string = '${aiFoundryName}-csafety'
 param aiSearchName string = '${aiFoundryName}-aisearch'
+param appInsightsName string = '${aiFoundryName}-appinsights'
+param logAnalyticsWorkspaceName string = '${aiFoundryName}-logs'
+param aiFoundryDiagnosticsName string = '${aiFoundryName}-diag'
 param location string = resourceGroup().location
 
 /*
@@ -141,6 +144,65 @@ resource searchService 'Microsoft.Search/searchServices@2023-11-01' = {
   }
 }
 
+/*
+  Application Insights for Foundry Trace
+  This enables distributed tracing and telemetry collection
+*/
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: appInsightsName
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id  // Optional but recommended
+    DisableLocalAuth: false
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Enabled'
+  }
+}
+
+/*
+  Log Analytics Workspace for storing traces
+*/
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: {
+    retentionInDays: 30
+    features: {
+      enableLogAccessUsingOnlyResourcePermissions: true
+    }
+  }
+}
+
+/*
+  Enable diagnostic settings to send traces to Log Analytics
+  This allows you to query traces using KQL
+*/
+resource aiFoundryDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: aiFoundryDiagnosticsName
+  scope: aiFoundry
+  properties: {
+    workspaceId: logAnalyticsWorkspace.id
+    logs: [
+      {
+        category: 'Trace'
+        enabled: true
+      }
+      {
+        category: 'Audit'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
+  }
+}
+
 output OPENAI_ENDPOINT string = 'https://${aiFoundry.properties.customSubDomainName}.services.ai.azure.com/openai/v1'
 output LLM_DEPLOYMENT_NAME string = llmModelDeployment.name
 output SLM_DEPLOYMENT_NAME string = slmModelDeployment.name
@@ -148,3 +210,4 @@ output CONTENT_SAFETY_ENDPOINT string = 'https://${contentSafety.properties.cust
 output SEARCH_SERVICE_ENDPOINT string = 'https://${searchService.name}.search.windows.net'
 output SEARCH_SERVICE_NAME string = searchService.name
 output EMBEDDING_MODEL_DEPLOYMENT_NAME string = embeddingModelDeployment.name
+output APPLICATIONINSIGHTS_CONNECTION_STRING string = applicationInsights.properties.ConnectionString

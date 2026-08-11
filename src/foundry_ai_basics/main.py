@@ -1,6 +1,6 @@
 import sys
+from uuid import uuid4
 
-from foundry_ai_basics import config
 from foundry_ai_basics.ai.prompts import (
     build_system_instruction,
     count_tokens,
@@ -23,6 +23,7 @@ from foundry_ai_basics.ai.search import (
 
 from foundry_ai_basics.config import load_config
 from foundry_ai_basics.display import format_reply, print_performance_metrics
+from foundry_ai_basics.open_telemetry import OpenTelemetry
 
 
 def main() -> None:
@@ -36,6 +37,12 @@ def main() -> None:
     search_client = create_search_client(config)
 
     mcp_client = create_mcp_client(config)
+    open_telemetry_client = OpenTelemetry(
+        config.application_insights_connection_string,
+        user_name=config.user_name,
+        user_role=config.user_role,
+    )
+    open_telemetry_client.set_conversation_id(str(uuid4()))
 
     # Step 1: Create index
     create_index(search_index_client, config.search_index_name)
@@ -86,10 +93,11 @@ def main() -> None:
 
     result = route_to_model(
         openai_client,
-        mcp_client,
         user_message_text,
         config.routing,
-        messages=messages
+        messages=messages,
+        mcp_client=mcp_client,
+        open_telemetry_client=open_telemetry_client,
     )
 
     if result.reply is None:
@@ -106,6 +114,7 @@ def main() -> None:
         format_reply(result.reply)
 
     print_performance_metrics(result)
+    open_telemetry_client.flush()
 
 
 if __name__ == "__main__":

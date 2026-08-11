@@ -52,6 +52,7 @@ class AppConfig:
     exchange_rate_api_key: str
     mcp_server_url: str
     mcp_api_key: str
+    application_insights_connection_string: str
     content_safety_endpoint: str
     search_service_endpoint: str
     search_index_name: str
@@ -101,6 +102,9 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
         exchange_rate_api_key=_required_env("EXCHANGE_RATE_API_KEY"),
         mcp_server_url=_required_env("MCP_SERVER_URL"),
         mcp_api_key=_required_env("MCP_API_KEY"),
+        application_insights_connection_string=_required_env(
+            "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        ),
         content_safety_endpoint=_required_env("CONTENT_SAFETY_ENDPOINT"),
         user_name=_required_config_setting(settings, ["user", "name"]),
         user_role=_required_config_setting(settings, ["user", "role"]),
