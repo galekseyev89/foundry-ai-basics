@@ -40,9 +40,22 @@ variables:
 ```powershell
 $env:AZURE_OPENAI_ENDPOINT = "https://<your-foundry-resource>.services.ai.azure.com/openai/v1"
 $env:CONTENT_SAFETY_ENDPOINT = "https://<your-content-safety-resource>.cognitiveservices.azure.com/"
+$env:SEARCH_SERVICE_ENDPOINT = "https://<your-search-service>.search.windows.net"
 $env:LLM_DEPLOYMENT_NAME = "<your-llm-deployment>"
 $env:SLM_DEPLOYMENT_NAME = "<your-slm-deployment>"
+$env:EMBEDDING_MODEL_DEPLOYMENT_NAME = "<your-embedding-deployment>"
+$env:APPLICATIONINSIGHTS_CONNECTION_STRING = "<your-application-insights-connection-string>"
+$env:MCP_SERVER_URL = "<your-mcp-server-url>"
+$env:MCP_API_KEY = "<your-mcp-api-key>"
+$env:REST_API_ENDPOINT = "<your-rest-api-endpoint>"
+$env:REST_API_KEY = "<your-rest-api-key>"
+$env:EXCHANGE_RATE_API_ENDPOINT = "<your-exchange-rate-api-endpoint>"
+$env:EXCHANGE_RATE_API_KEY = "<your-exchange-rate-api-key>"
 ```
+
+The deployment output prints the Azure endpoint, model deployment, search, and
+Application Insights values. Keep API keys and connection strings out of
+`settings.toml` and source control.
 
 ## Test
 
