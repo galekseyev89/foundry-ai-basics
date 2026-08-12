@@ -63,3 +63,14 @@ Application Insights values. Keep API keys and connection strings out of
 $env:PYTHONPATH='src'
 python -m unittest discover
 ```
+
+## Run
+
+```powershell
+$env:PYTHONPATH='src'
+python -m foundry_ai_basics.main
+```
+
+When prompted, type the message you want to send to the model.
+The app keeps the conversation history while it is running. Submit a blank
+message to exit.

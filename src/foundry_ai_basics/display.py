@@ -1,6 +1,10 @@
 from foundry_ai_basics.ai.routing import RoutingResult
 
 
+def read_user_message() -> str:
+    return input("You (blank to exit): ").strip()
+
+
 def format_reply(reply: str) -> None:
     print("=" * 50 + "\n")
     print(reply)

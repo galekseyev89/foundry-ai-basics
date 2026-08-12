@@ -97,6 +97,33 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(routed_call["temperature"], 0.5)
         self.assertEqual(result.model_type, "LLM")
 
+    def test_route_to_model_keeps_system_message_when_trimming_history(self):
+        client = FakeOpenAIClient([FakeResponse("simple"), FakeResponse("Latest")])
+        routing = _routing_config()
+        messages = [
+            {"role": "system", "content": "Stay helpful."},
+            {"role": "user", "content": "Question 1"},
+            {"role": "assistant", "content": "Answer 1"},
+            {"role": "user", "content": "Question 2"},
+            {"role": "assistant", "content": "Answer 2"},
+            {"role": "user", "content": "Question 3"},
+            {"role": "assistant", "content": "Answer 3"},
+            {"role": "user", "content": "Question 4"},
+        ]
+
+        _route_quietly(
+            client,
+            user_question="Question 4",
+            routing=routing,
+            messages=messages,
+        )
+
+        routed_messages = client.chat.completions.calls[1]["messages"]
+        self.assertEqual(routed_messages[0]["role"], "system")
+        self.assertEqual(routed_messages[0]["content"], "Stay helpful.")
+        self.assertEqual(len(routed_messages), 5)
+        self.assertEqual(routed_messages[-1]["content"], "Question 4")
+
 
 def _routing_config():
     return RoutingConfig(

@@ -75,7 +75,7 @@ def route_to_model(
     client: OpenAI,
     user_question: str,
     routing: RoutingConfig,
-    messages: list[dict[str, str]],
+    messages: list[dict[str, Any]],
     mcp_client: MCPToolClient | None = None,
     open_telemetry_client: OpenTelemetry | None = None,
     tools: list[dict[str, Any]] | None = None,
@@ -114,7 +114,10 @@ def route_to_model(
             route_span.set_attribute("model.name", selected_model.deployment_name)
             route_span.set_attribute("model.type", selected_model.model_type)
 
-        messages = messages[-selected_model.max_past_messages :]
+        messages = _trim_messages_for_model(
+            messages,
+            selected_model.max_past_messages,
+        )
 
         start_time = time.time()
 
@@ -232,6 +235,23 @@ def _select_model(intent: str, routing: RoutingConfig) -> RoutedModelConfig:
         return routing.slm
 
     return routing.llm
+
+
+def _trim_messages_for_model(
+    messages: list[dict[str, Any]],
+    max_past_messages: int,
+) -> list[dict[str, Any]]:
+    if not messages:
+        return []
+
+    if messages[0].get("role") != "system":
+        return messages[-max_past_messages:]
+
+    system_message = messages[0]
+    conversation_messages = messages[1:]
+    conversation_limit = max(max_past_messages - 1, 1)
+
+    return [system_message] + conversation_messages[-conversation_limit:]
 
 
 def _print_routing_decision(model: RoutedModelConfig) -> None:

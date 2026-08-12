@@ -22,7 +22,11 @@ from foundry_ai_basics.ai.search import (
 )
 
 from foundry_ai_basics.config import load_config
-from foundry_ai_basics.display import format_reply, print_performance_metrics
+from foundry_ai_basics.display import (
+    format_reply,
+    print_performance_metrics,
+    read_user_message,
+)
 from foundry_ai_basics.open_telemetry import OpenTelemetry
 
 
@@ -54,66 +58,80 @@ def main() -> None:
         config.embedding_model_deployment_name,
     )
 
-    #user_message_text = "Hey whats going with my order 67890? I want a refund!"
-    user_message_text = "search for repositories owned by **galekseyev89** and list them"
+    messages: list[dict[str, str]] = []
 
-    if not is_text_safe(
-        content_safety_client,
-        user_message_text,
-        config.severity_threshold,
-    ):
-        format_reply(config.safe_response)
-        return
+    while True:
+        user_message_text = read_user_message()
+        if not user_message_text:
+            print("No message entered. Exiting.")
+            break
 
-    grounding_results = search_documents(
-        search_client,
-        openai_client,
-        config.embedding_model_deployment_name,
-        user_message_text,
-    )
+        if not is_text_safe(
+            content_safety_client,
+            user_message_text,
+            config.severity_threshold,
+        ):
+            format_reply(config.safe_response)
+            continue
 
-    system_instruction = build_system_instruction(
-        user_name=config.user_name,
-        user_role=config.user_role,
-        session_state=config.session_state,
-        grounding_results=grounding_results,
-    )
-
-    token_count = count_tokens(system_instruction, model=config.llm_deployment_name)
-    if token_count > config.max_system_tokens:
-        system_instruction, token_count = truncate_system_instruction(
-            system_instruction,
-            model=config.llm_deployment_name,
-            max_tokens=config.max_system_tokens,
+        grounding_results = search_documents(
+            search_client,
+            openai_client,
+            config.embedding_model_deployment_name,
+            user_message_text,
         )
 
-    system_message = {"role": "system", "content": system_instruction}
-    user_message = {"role": "user", "content": user_message_text}
-    messages = [system_message, user_message]
+        system_instruction = build_system_instruction(
+            user_name=config.user_name,
+            user_role=config.user_role,
+            session_state=config.session_state,
+            grounding_results=grounding_results,
+        )
 
-    result = route_to_model(
-        openai_client,
-        user_message_text,
-        config.routing,
-        messages=messages,
-        mcp_client=mcp_client,
-        open_telemetry_client=open_telemetry_client,
-    )
+        token_count = count_tokens(system_instruction, model=config.llm_deployment_name)
+        if token_count > config.max_system_tokens:
+            system_instruction, token_count = truncate_system_instruction(
+                system_instruction,
+                model=config.llm_deployment_name,
+                max_tokens=config.max_system_tokens,
+            )
 
-    if result.reply is None:
-        print("ERROR: Failed to get response from model.")
-        sys.exit(1)
+        system_message = {"role": "system", "content": system_instruction}
+        if messages:
+            messages[0] = system_message
+        else:
+            messages.append(system_message)
 
-    if not is_text_safe(
-        content_safety_client,
-        result.reply,
-        config.severity_threshold,
-    ):
-        format_reply(config.safe_response)
-    else:
-        format_reply(result.reply)
+        user_message = {"role": "user", "content": user_message_text}
+        messages.append(user_message)
 
-    print_performance_metrics(result)
+        result = route_to_model(
+            openai_client,
+            user_message_text,
+            config.routing,
+            messages=messages,
+            mcp_client=mcp_client,
+            open_telemetry_client=open_telemetry_client,
+        )
+
+        if result.reply is None:
+            print("ERROR: Failed to get response from model.")
+            sys.exit(1)
+
+        if not is_text_safe(
+            content_safety_client,
+            result.reply,
+            config.severity_threshold,
+        ):
+            reply_text = config.safe_response
+        else:
+            reply_text = result.reply
+
+        format_reply(reply_text)
+        messages.append({"role": "assistant", "content": reply_text})
+
+        print_performance_metrics(result)
+
     open_telemetry_client.flush()
 
 
