@@ -16,6 +16,10 @@ index_name = "foundry-ai-basics-index"
 max_system_tokens = 4000
 session_state = "awaiting_order_number - user asked about refund but no order number"
 
+[redis]
+session_ttl_seconds = 3600
+max_messages_in_history = 20
+
 [routing.intent_classifier]
 max_tokens = 5
 temperature = 0

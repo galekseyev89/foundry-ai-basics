@@ -41,6 +41,15 @@ class RoutingConfig:
 
 
 @dataclass(frozen=True)
+class RedisConfig:
+    host_name: str | None
+    access_key: str | None
+    port: int
+    session_ttl_seconds: int
+    max_messages_in_history: int
+
+
+@dataclass(frozen=True)
 class AppConfig:
     azure_openai_endpoint: str
     llm_deployment_name: str
@@ -65,6 +74,8 @@ class AppConfig:
     safe_response: str
     max_system_tokens: int
     session_state: str | None
+    redis: RedisConfig
+
     @property
     def routing(self) -> RoutingConfig:
         return RoutingConfig(
@@ -118,6 +129,17 @@ def load_config(config_path: str | Path | None = None) -> AppConfig:
             ["prompt", "max_system_tokens"],
         ),
         session_state=_optional_config_setting(settings, ["prompt", "session_state"]),
+        redis=RedisConfig(
+            host_name=_optional_env("REDIS_HOST_NAME"),
+            access_key=_optional_env("REDIS_ACCESS_KEY"),
+            port=int(os.getenv("REDIS_PORT", "6380")),
+            session_ttl_seconds=_required_int_setting(
+                settings, ["redis", "session_ttl_seconds"]
+            ),
+            max_messages_in_history=_required_int_setting(
+                settings, ["redis", "max_messages_in_history"]
+            ),
+        ),
         search_service_endpoint=_required_env("SEARCH_SERVICE_ENDPOINT"),
         search_index_name=_required_config_setting(settings, ["search", "index_name"]),
         intent_classifier=IntentClassifierConfig(
@@ -176,6 +198,14 @@ def _required_env(env_name: str) -> str:
         return env_value
 
     raise ValueError(f"Missing required environment variable: {env_name}")
+
+
+def _optional_env(env_name: str) -> str | None:
+    env_value = os.getenv(env_name)
+    if env_value:
+        return env_value
+
+    return None
 
 
 def _optional_config_setting(settings: dict[str, Any], path: list[str]) -> Any:

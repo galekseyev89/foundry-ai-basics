@@ -37,6 +37,11 @@ class ConfigTests(unittest.TestCase):
             config.safe_response, "Blocked by settings file safety policy."
         )
         self.assertEqual(config.max_system_tokens, 3000)
+        self.assertEqual(config.redis.host_name, "env-cache.redis.cache.windows.net")
+        self.assertEqual(config.redis.access_key, "env-redis-key")
+        self.assertEqual(config.redis.port, 6380)
+        self.assertEqual(config.redis.session_ttl_seconds, 3600)
+        self.assertEqual(config.redis.max_messages_in_history, 20)
         self.assertEqual(config.llm.max_tokens, 200)
         self.assertEqual(config.llm.temperature, 0.5)
         self.assertEqual(config.slm.temperature, 0.1)
@@ -75,6 +80,7 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.routing.slm.deployment_name, "env-slm")
         self.assertEqual(config.routing.slm.model_type, "SLM")
         self.assertEqual(config.routing.slm.max_past_messages, 5)
+        self.assertEqual(config.redis.session_ttl_seconds, 3600)
 
     def test_load_config_requires_routing_settings(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -110,10 +116,17 @@ def _azure_env():
         "EMBEDDING_MODEL_DEPLOYMENT_NAME": "env-embedding",
         "CONTENT_SAFETY_ENDPOINT": "https://env.cognitiveservices.azure.com",
         "SEARCH_SERVICE_ENDPOINT": "https://env.search.windows.net",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": (
+            "InstrumentationKey=00000000-0000-0000-0000-000000000000"
+        ),
+        "MCP_SERVER_URL": "https://env.example.test/mcp",
+        "MCP_API_KEY": "env-mcp-key",
         "REST_API_ENDPOINT": "https://env.example.test/orders",
         "REST_API_KEY": "env-rest-key",
         "EXCHANGE_RATE_API_ENDPOINT": "https://env.example.test/rates",
         "EXCHANGE_RATE_API_KEY": "env-exchange-key",
+        "REDIS_HOST_NAME": "env-cache.redis.cache.windows.net",
+        "REDIS_ACCESS_KEY": "env-redis-key",
     }
 
 
@@ -129,6 +142,10 @@ def _minimal_settings():
 
     [prompt]
     max_system_tokens = 3000
+
+    [redis]
+    session_ttl_seconds = 3600
+    max_messages_in_history = 20
 
     [search]
     index_name = "foundry-ai-basics-index"

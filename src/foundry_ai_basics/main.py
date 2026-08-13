@@ -1,3 +1,4 @@
+import os
 import sys
 from uuid import uuid4
 
@@ -12,6 +13,7 @@ from foundry_ai_basics.clients import (
     create_content_safety_client,
     create_mcp_client,
     create_openai_client,
+    create_redis_client,
     create_search_client,
     create_search_index_client,
 )
@@ -28,6 +30,7 @@ from foundry_ai_basics.display import (
     read_user_message,
 )
 from foundry_ai_basics.open_telemetry import OpenTelemetry
+from foundry_ai_basics.redis import RedisMemory
 
 
 def main() -> None:
@@ -37,28 +40,33 @@ def main() -> None:
 
     content_safety_client = create_content_safety_client(config)
 
-    search_index_client = create_search_index_client(config)
-    search_client = create_search_client(config)
+    # search_index_client = create_search_index_client(config)
+    # search_client = create_search_client(config)
 
     mcp_client = create_mcp_client(config)
+
+    redis_client = create_redis_client(config)
+    redis_memory = RedisMemory(redis_client, config.redis)
+
     open_telemetry_client = OpenTelemetry(
         config.application_insights_connection_string,
         user_name=config.user_name,
         user_role=config.user_role,
     )
-    open_telemetry_client.set_conversation_id(str(uuid4()))
+    session_id = str("session1")
+    open_telemetry_client.set_conversation_id(session_id)
 
     # Step 1: Create index
-    create_index(search_index_client, config.search_index_name)
+    # create_index(search_index_client, config.search_index_name)
 
     # Step 2: Upload documents
-    upload_documents(
-        search_client,
-        openai_client,
-        config.embedding_model_deployment_name,
-    )
+    # upload_documents(
+    #     search_client,
+    #     openai_client,
+    #     config.embedding_model_deployment_name,
+    # )
 
-    messages: list[dict[str, str]] = []
+    messages = redis_memory.load_conversation(session_id)
 
     while True:
         user_message_text = read_user_message()
@@ -74,18 +82,18 @@ def main() -> None:
             format_reply(config.safe_response)
             continue
 
-        grounding_results = search_documents(
-            search_client,
-            openai_client,
-            config.embedding_model_deployment_name,
-            user_message_text,
-        )
+        # grounding_results = search_documents(
+        #     search_client,
+        #     openai_client,
+        #     config.embedding_model_deployment_name,
+        #     user_message_text,
+        # )
 
         system_instruction = build_system_instruction(
             user_name=config.user_name,
             user_role=config.user_role,
             session_state=config.session_state,
-            grounding_results=grounding_results,
+            # grounding_results=grounding_results,
         )
 
         token_count = count_tokens(system_instruction, model=config.llm_deployment_name)
@@ -128,7 +136,9 @@ def main() -> None:
             reply_text = result.reply
 
         format_reply(reply_text)
+        
         messages.append({"role": "assistant", "content": reply_text})
+        redis_memory.save_conversation(session_id, messages)
 
         print_performance_metrics(result)
 

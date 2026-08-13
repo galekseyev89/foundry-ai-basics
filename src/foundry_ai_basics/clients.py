@@ -3,9 +3,11 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from openai import OpenAI
+from redis import Redis
 
 from foundry_ai_basics.config import AppConfig
 from foundry_ai_basics.ai.mcp import MCPToolClient
+
 
 def create_openai_client(config: AppConfig) -> OpenAI:
     token_provider = get_bearer_token_provider(
@@ -34,6 +36,20 @@ def create_search_client(config: AppConfig) -> SearchClient:
         index_name=config.search_index_name,
         credential=DefaultAzureCredential(),
     )
+
+
+def create_redis_client(config: AppConfig) -> Redis | None:
+    if not config.redis.host_name or not config.redis.access_key:
+        return None
+
+    return Redis(
+        host=config.redis.host_name,
+        port=config.redis.port,
+        password=config.redis.access_key,
+        ssl=True,
+        decode_responses=True,
+    )
+
 
 def create_mcp_client(config: AppConfig):
     return MCPToolClient(

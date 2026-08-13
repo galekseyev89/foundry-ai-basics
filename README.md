@@ -8,6 +8,7 @@ Small Azure AI Foundry practice app for AI-103 learning.
 - `config.py` loads settings.
 - `clients.py` creates Azure clients.
 - `display.py` prints output.
+- `redis.py` contains optional session-memory helpers for future caching.
 - `ai/` contains prompts, routing, and safety logic.
 - `deployment/` contains Azure deployment files.
 
@@ -34,7 +35,8 @@ Use `foundry-ai-basics.sh` as a command reference:
 
 ## Environment Variables
 
-Edit `settings.toml` for sample behavior. Set Azure values with environment
+Edit `settings.toml` for sample behavior, including the optional Redis session
+memory TTL and message-history limits. Set Azure values with environment
 variables:
 
 ```powershell
@@ -51,11 +53,18 @@ $env:REST_API_ENDPOINT = "<your-rest-api-endpoint>"
 $env:REST_API_KEY = "<your-rest-api-key>"
 $env:EXCHANGE_RATE_API_ENDPOINT = "<your-exchange-rate-api-endpoint>"
 $env:EXCHANGE_RATE_API_KEY = "<your-exchange-rate-api-key>"
+$env:REDIS_HOST_NAME = "<your-cache-name>.redis.cache.windows.net"
+$env:REDIS_ACCESS_KEY = "<your-redis-access-key>"
+$env:SESSION_ID = "local-learning-session"
 ```
 
 The deployment output prints the Azure endpoint, model deployment, search, and
 Application Insights values. Keep API keys and connection strings out of
 `settings.toml` and source control.
+
+Redis is optional. If `REDIS_HOST_NAME` and `REDIS_ACCESS_KEY` are not set, the
+app uses the in-memory fallback in `redis.py`. `SESSION_ID` is optional; set it
+when you want Redis to reload the same conversation in a later run.
 
 ## Test
 
